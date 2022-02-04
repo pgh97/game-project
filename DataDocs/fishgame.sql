@@ -30,10 +30,10 @@ create table wind_info_data (
 
 create table tide_info_data (
     tide_code int not null auto_increment primary key,
-    high_tide_time1 int null,
-    low_tide_time1 int null,
-    high_tide_time2 int null,
-    low_tide_time2 int null,
+    high_tide_time1 time null,
+    low_tide_time1 time null,
+    high_tide_time2 time null,
+    low_tide_time2 time null,
 	water_splash_time int not null,
 	appear_probability int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
@@ -73,6 +73,7 @@ create table map_item_data (
     map_item_code int not null auto_increment primary key,
     map_code int not null,
     item_code int not null,
+    item_type int not null,
     item_probability int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
@@ -99,12 +100,13 @@ create table fish_info_data (
 );
 
 create table fish_grade_data (
+	fish_grade_code int not null auto_increment primary key,
     fish_code int not null,
     grade_code int not null,
     min_value int not null,
     max_value int not null,
-    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP,
-    primary key(fish_code, grade_code)
+    add_experience int not null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 
 create table fishing_item_info_data (
@@ -116,7 +118,7 @@ create table fishing_item_info_data (
 );
 
 create table fishing_rod_grade_data (
-    item_grade_code int not null primary key,
+    item_grade_code int not null auto_increment primary key,
     item_code int not null,
     item_type int not null,
     grade_code int not null,
@@ -132,7 +134,7 @@ create table fishing_rod_grade_data (
 );
 
 create table fishing_line_grade_data (
-    item_grade_code int not null primary key,
+    item_grade_code int not null auto_increment primary key,
     item_code int not null,
     grade_code int not null,
     durability int not null,
@@ -147,7 +149,7 @@ create table fishing_line_grade_data (
 );
 
 create table fishing_needle_grade_data (
-    item_grade_code int not null primary key,
+    item_grade_code int not null auto_increment primary key,
     item_code int not null,
     grade_code int not null,
     suppress_probability int not null,
@@ -158,7 +160,7 @@ create table fishing_needle_grade_data (
 );
 
 create table fishing_bait_grade_data (
-    item_grade_code int not null primary key,
+    item_grade_code int not null auto_increment primary key,
     item_code int not null,
     grade_code int not null,
     fish_probability int not null,
@@ -168,7 +170,7 @@ create table fishing_bait_grade_data (
 );
 
 create table fishing_reel_grade_data (
-    item_grade_code int not null primary key,
+    item_grade_code int not null auto_increment primary key,
     item_code int not null,
     grade_code int not null,
     durability int not null,
@@ -199,6 +201,8 @@ create table fishing_item_upgrade_data (
     item_grade_code int not null,
     item_type int not null,
     upgrade_level int not null,
+    upgrade_item_code int not null,
+    upgrade_item_count int not null,
     money_code int not null,
     upgrade_price int not null,
     add_probability int not null,
@@ -207,6 +211,7 @@ create table fishing_item_upgrade_data (
 
 create table ship_item_upgrade_data (
     upgrade_code int not null auto_increment primary key,
+    ship_code int not null,
     upgrade_level int not null,
     money_code int not null,
     upgrade_price int not null,
@@ -236,8 +241,9 @@ create table auction_info_data (
 
 create table compensation_info_data (
     compensation_code int not null auto_increment primary key,
-    money_code int not null,
-    compensation_item int not null,
+    item_code int not null,
+    item_type int not null,
+    compensation_value int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -265,15 +271,42 @@ create table user_level_info_data (
 
 create table money_info_data (
     money_code int not null auto_increment primary key,
-    money_nm varchar(100) not null,
+    money_name varchar(100) not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 
-create table shop_info (
+create table shop_info_data (
     shop_code int not null auto_increment primary key,
     item_code int not null,
     item_type int not null,
     sale_percent int null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+);
+
+create table ship_info_data (
+    ship_code int not null auto_increment primary key,
+    ship_name varchar(100) not null,
+    durability int not null,
+    fuel int not null,
+    max_upgrade int not null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+);
+
+create table upgrade_item_data (
+    upgrade_item_code int not null auto_increment primary key,
+    upgrade_item_name varchar(100) not null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+);
+
+create table country_info_data (
+    country_code int not null auto_increment primary key,
+    country_name varchar(100) not null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+);
+
+create table language_info_data (
+    language_code int not null auto_increment primary key,
+    language_name varchar(100) not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -283,8 +316,8 @@ create table account_info (
     account_code int not null primary key,
     account_type int not null,
     hive_code int null,
-    account_country int not null,
-    account_language int not null,
+    country_code int not null,
+    language_code int not null,
     last_login_data int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
