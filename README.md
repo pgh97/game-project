@@ -11,6 +11,16 @@
         * 임시 기획 데이터
     * DataDocs > fishgame.sql
         * 기획, 인게임 관련 테이블 생성 쿼리
+    * DataDocs > fishgame_data.sql
+        * 기획 테이블 생성 및 임시 데이터 쿼리
+    * DataDocs > fishgame_erd.mwb
+        * DB 테이블 erd
+---
+### API 기능 정리
+    * APIDocs > API명세서.xlsx
+        * API 명세서 작성 중.
 ---
 ### 현재 진행상황
-* DB(MySQL) 테이블의 데이터 insert
+* DB(MySQL) 테이블 속성 일부 수정
+* API 기능 정리 중
+* 기획 데이터를 저장소에 저장하는 툴 개발

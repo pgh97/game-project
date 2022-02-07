@@ -48,7 +48,7 @@ create table map_info_data (
 	money_code int not null,
 	departure_price int not null,
     departure_time int not null,
-    per_fiatigue int not null,
+    per_durability int not null,
 	map_fish_count int not null,
     fish_size_probability int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
@@ -310,6 +310,13 @@ create table language_info_data (
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 
+create table buff_info_data (
+    buff_code int not null auto_increment primary key,
+    buff_name varchar(100) not null,
+    add_buff int not null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 인게임 데이터 테이블 생성 쿼리
 
 create table account_info (
@@ -341,16 +348,20 @@ create table user_weather_history (
     user_code int not null,
     weather_code int not null,
     map_wave_code int not null,
+	temperature int not null,
+    wind int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 
 create table user_ship_info (
-    user_code int not null primary key,
+    user_code int not null,
+    ship_code int not null,
     durability int not null,
     fuel int not null,
     upgrade_code int not null,
     upgrade_level int not null,
-    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP,
+    primary key(user_code, ship_code)
 );
 
 create table user_choice_item_info (
