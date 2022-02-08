@@ -24,3 +24,4 @@
 * DB(MySQL) 테이블 속성 일부 수정
 * API 기능 정리 중
 * 기획 데이터를 저장소에 저장하는 툴 개발
+  * composer, slim, phpexcel 설치

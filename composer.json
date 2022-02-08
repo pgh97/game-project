@@ -1,0 +1,21 @@
+{
+  "name": "vendor/public_html",
+  "description": "description",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "pgh97",
+      "email": "pgh97@com2us.com"
+    }
+  ],
+  "require": {
+    "slim/slim": "4.*",
+    "phpoffice/phpexcel": "1.8.1"
+  },
+  "autoload": {
+    "psr-4": {
+
+    }
+  }
+}
