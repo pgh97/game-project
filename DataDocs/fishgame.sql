@@ -193,6 +193,7 @@ create table function_info_data (
 create table fishing_item_function_data (
     item_grade_code int not null,
     function_code int not null,
+    item_type int not null,
     primary key(item_grade_code, function_code)
 );
 

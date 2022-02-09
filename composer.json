@@ -11,11 +11,13 @@
   ],
   "require": {
     "slim/slim": "4.*",
-    "phpoffice/phpexcel": "1.8.1"
+    "phpoffice/phpspreadsheet": "1.21.0",
+    "ext-mysqli": "*",
+    "ext-gd": "*"
   },
   "autoload": {
     "psr-4": {
-
+      "App\\": "src/"
     }
   }
 }
