@@ -4,7 +4,7 @@ function OpenConn()
 {
     $servername = "localhost";
     $username = "root";
-    $password = "Fhekwn6471!@";
+    $password = "Q1w2e3r4!@";
     $db = "fishgame";
 
     // Create connection

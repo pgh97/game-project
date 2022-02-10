@@ -15,14 +15,17 @@
         * 기획 테이블 생성 및 임시 데이터 쿼리
     * DataDocs > fishgame_erd.mwb
         * DB 테이블 erd
+    * DataDocs > data
+        * 기획 데이터 테이블별 excel 파일들
 ---
 ### API 기능 정리
     * APIDocs > API명세서.xlsx
-        * API 명세서 작성 중.
+        * API 명세서 작성 중
 ---
-### 현재 진행상황
+### 현재 진행상황 (2022-02-10)
 * DB(MySQL) 테이블 속성 일부 수정
-* API 기능 정리 중
-* 기획 데이터를 저장소에 저장하는 툴 개발
+* 기획 데이터를 저장소에 저장하는 툴 개발 (http://localhost/src/uploadTool/excelFileUploadForm.php)
   * composer, slim, phpexcel 설치
-  * 파일 업로드 기능과 DB 쿼리 생성하여 데이터 넣는 기능 추가
+  * 파일 업로드 기능 추가
+  * 엑셀 파일을 읽어 자동으로 Drop Table 쿼리, Create Table 쿼리, Data Insert 쿼리 실행
+* API 기능 정리 중 

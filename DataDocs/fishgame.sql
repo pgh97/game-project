@@ -91,9 +91,6 @@ create table fish_info_data (
     max_depth int not null,
     min_size int not null,
     max_size int not null,
-    money_code int not null,
-	min_price int not null,
-	max_price int not null,
     fish_probability int not null,
     fish_durability int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
@@ -106,6 +103,9 @@ create table fish_grade_data (
     min_value int not null,
     max_value int not null,
     add_experience int not null,
+    money_code int not null,
+	min_price int not null,
+	max_price int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -228,15 +228,6 @@ create table item_repair_info_data (
     item_type int not null,
     money_code int not null,
     repair_price int not null,
-    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
-);
-
-create table auction_info_data (
-    auction_code int not null auto_increment primary key,
-    fish_code int not null,
-    money_code int not null,
-    auction_price int not null,
-    change_time int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -416,4 +407,14 @@ create table auction_ranking (
     auction_rank int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP,
     primary key(week_date, user_code)
+);
+
+create table auction_info_data (
+    auction_code int not null auto_increment primary key,
+    user_code int not null,
+    fish_grade_code int not null,
+    money_code int not null,
+    auction_price int not null,
+    change_time int not null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
