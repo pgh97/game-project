@@ -28,4 +28,5 @@
   * composer, slim, phpexcel 설치
   * 파일 업로드 기능 추가
   * 엑셀 파일을 읽어 자동으로 Drop Table 쿼리, Create Table 쿼리, Data Insert 쿼리 실행
+  * ![기획데이터 업로드 페이지](https://user-images.githubusercontent.com/97434281/153375531-bf153072-1ec3-4e12-a891-ff5891aff55c.PNG)
 * API 기능 정리 중 
