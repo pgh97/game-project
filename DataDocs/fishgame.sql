@@ -315,10 +315,13 @@ create table account_info (
     account_code int not null primary key,
     account_type int not null,
     hive_code int null,
+    account_id varchar(200) not null,
+    account_pw varchar(200) not null,
     country_code int not null,
     language_code int not null,
     last_login_data int not null,
-    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP,
+    unique index(account_id)
 );
 
 create table user_info (
@@ -387,6 +390,14 @@ create table user_inventory_info (
     upgrade_level int null,
     item_count int not null,
     item_durability int not null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+);
+
+create table user_fish_inventory_info (
+    fish_inventory_code int not null auto_increment primary key,
+    user_code int not null,
+    map_code int not null,
+    fish_grade_code int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
 );
 

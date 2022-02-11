@@ -11,9 +11,11 @@
   ],
   "require": {
     "slim/slim": "4.*",
+    "slim/psr7": "dev-master",
     "phpoffice/phpspreadsheet": "1.21.0",
     "ext-mysqli": "*",
-    "ext-gd": "*"
+    "ext-gd": "*",
+    "ext-redis": "*"
   },
   "autoload": {
     "psr-4": {
