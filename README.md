@@ -5,17 +5,17 @@
 ### 기획데이터 정리
     * 기획데이터 표현 방법 : EXECL
     * 기획데이터 저장 방법 : DB, Memory Cache (MySQL, Redis 사용)
-    * DataDocs > 기획과 인게임 데이터 테이블 정의.xlsx
+    * docs > DataDocs > 기획과 인게임 데이터 테이블 정의.xlsx
         * 기획 데이터 정의, 인게임 데이터 정의 시트 참고
-    * DataDocs > 기획 데이터.xlsx
+    * docs > DataDocs > 기획 데이터.xlsx
         * 임시 기획 데이터
-    * DataDocs > fishgame.sql
+    * docs > DataDocs > fishgame.sql
         * 기획, 인게임 관련 테이블 생성 쿼리
-    * DataDocs > fishgame_data.sql
+    * docs > DataDocs > fishgame_data.sql
         * 기획 테이블 생성 및 임시 데이터 쿼리
-    * DataDocs > fishgame_erd.mwb
+    * docs > DataDocs > fishgame_erd.mwb
         * DB 테이블 erd
-    * DataDocs > data
+    * docs > DataDocs > data
         * 기획 데이터 테이블별 excel 파일들
 ---
 ### 기획 데이터 저장툴 개발 완료
@@ -27,7 +27,7 @@
 
 ---
 ### API 기능 정리
-    * APIDocs > API명세서.xlsx
+    * docs > APIDocs > API명세서.xlsx
         * API 명세서 작성 중
 ---
 ### 현재 진행상황 (2022-02-16)
