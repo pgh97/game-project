@@ -20,4 +20,3 @@ if(!empty($userName)){
         $memc->set($userName, $result["user_name"]);
     }
 }
-?>

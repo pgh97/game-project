@@ -27,4 +27,3 @@ if(isset($_FILES['imageToUpload']) && $_FILES['imageToUpload']['name'] != "") {
     echo "<h3>파일이 업로드 되지 않았습니다.</h3>";
     echo '<a href="javascript:history.go(-1);">이전 페이지</a>';
 }
-?>

@@ -1,7 +1,11 @@
 <?php
-include "../config/db_connection.php";
-require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
+namespace App\uploadTool\excelFile;
+session_start();
 
+include_once "../config/db_connection.php";
+require_once $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
+
+use App\config\db\Database;
 use PhpOffice\PhpSpreadsheet\Reader\Xls;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
@@ -143,12 +147,57 @@ if (isset($_FILES['fileToUpload']) && $_FILES['fileToUpload']['name'] != "") {
         }
         echo '</table>';
 
-        // mysql 연결
-        $conn = OpenConn();
+        // mysqli 연결
+//        $conn = OpenConn();
+//        echo "<br />";
+//
+//        //테이블이 있을 경우 drop
+//        if (mysqli_query($conn, "DROP TABLE IF EXISTS ".$fileName)) {
+//            echo "table drop successfully";
+//        } else {
+//            echo "Error: " . $fullSql . "<br>" . mysqli_error($conn);
+//        }
+//        echo "<br />";
+//
+//        //테이블 생성
+//        $createSql = "CREATE TABLE " . $fileName . " (";
+//        for ($i = 0; $i < count($nameArray); $i++) {
+//            $createSql .= $nameArray[$i] . " " . $dataTypeArray[$i] . " " . $nullYnArray[$i] . ", ";
+//
+//            if ($i === count($nameArray) - 1) {
+//                $createSql .= "create_date timestamp not null DEFAULT CURRENT_TIMESTAMP, ";
+//            }
+//        }
+//        $createSql = $createSql . $primaryKeyStr . ")";
+//
+//        if (mysqli_query($conn, $createSql)) {
+//            echo "table create successfully";
+//        } else {
+//            echo "Error: " . $fullSql . "<br>" . mysqli_error($conn);
+//        }
+//        echo "<br />";
+//
+//        // 데이터 생성
+//        for ($i = 0; $i < count($fullSql); $i++) {
+//            if (mysqli_query($conn, $fullSql[$i])) {
+//                echo "New record insert successfully";
+//            } else {
+//                echo "Error: " . $fullSql . "<br>" . mysqli_error($conn);
+//            }
+//            echo "<br />";
+//        }
+//
+//        //mysql 연결 종료
+//        mysqli_close($conn);
+
+        // pdo 연결
+        $database = new Database();
+        $conn = $database->getConnection();
         echo "<br />";
 
         //테이블이 있을 경우 drop
-        if (mysqli_query($conn, "DROP TABLE IF EXISTS ".$fileName)) {
+        $stmt = $conn->prepare("DROP TABLE IF EXISTS ".$fileName);
+        if ($stmt->execute()) {
             echo "table drop successfully";
         } else {
             echo "Error: " . $fullSql . "<br>" . mysqli_error($conn);
@@ -166,7 +215,8 @@ if (isset($_FILES['fileToUpload']) && $_FILES['fileToUpload']['name'] != "") {
         }
         $createSql = $createSql . $primaryKeyStr . ")";
 
-        if (mysqli_query($conn, $createSql)) {
+        $stmt = $conn->prepare($createSql);
+        if ($stmt->execute()) {
             echo "table create successfully";
         } else {
             echo "Error: " . $fullSql . "<br>" . mysqli_error($conn);
@@ -175,16 +225,14 @@ if (isset($_FILES['fileToUpload']) && $_FILES['fileToUpload']['name'] != "") {
 
         // 데이터 생성
         for ($i = 0; $i < count($fullSql); $i++) {
-            if (mysqli_query($conn, $fullSql[$i])) {
+            $stmt = $conn->prepare($fullSql[$i]);
+            if ($stmt->execute()) {
                 echo "New record insert successfully";
             } else {
                 echo "Error: " . $fullSql . "<br>" . mysqli_error($conn);
             }
             echo "<br />";
         }
-
-        //mysql 연결 종료
-        mysqli_close($conn);
     }
 
     //파일 업로드
@@ -235,4 +283,3 @@ if (UPLOAD_ERR_OK != $_FILES['fileToUpload']['error']) {
 }
 
 session_destroy();
-?>

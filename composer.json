@@ -12,10 +12,13 @@
   "require": {
     "slim/slim": "4.*",
     "slim/psr7": "^1.5",
+    "selective/basepath": "2.1.0",
     "phpoffice/phpspreadsheet": "1.21.0",
     "ext-mysqli": "*",
     "ext-gd": "*",
-    "ext-redis": "*"
+    "ext-redis": "*",
+    "ext-pdo": "*",
+    "ext-json": "*"
   },
   "autoload": {
     "psr-4": {
