@@ -1,9 +1,30 @@
 <?php
-
-namespace App\config\db;
+namespace App\config;
 
 use PDO;
 use PDOException;
+
+// pdo 방법
+class Database{
+    private $host = "127.0.0.1";//"localhost";
+    private $db_name = "fishgame";
+    private $username = "root";
+    private $password = "Q1w2e3r4!@";
+
+    public function getConnection(){
+        try {
+            $conn_str = "mysql:host=".$this->host.";dbname=".$this->db_name;
+            $conn = new PDO($conn_str, $this->username, $this->password);
+            $conn->exec("set names utf8"); // 설정을 안해주면 한글깨짐.
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        }catch (PDOException $exception){
+            echo "Connection error: ".$exception->getMessage();
+        }
+
+        return $conn;
+    }
+}
+
 
 // mysqli 방법
 //function OpenConn()
@@ -26,24 +47,3 @@ use PDOException;
 //
 //    return $conn;
 //}
-
-// pdo 방법
-class Database{
-    private $host = "127.0.0.1";//"localhost";
-    private $db_name = "fishgame";
-    private $username = "root";
-    private $password = "Q1w2e3r4!@";
-
-    public function getConnection(){
-        try {
-            $conn_str = "mysql:host=".$this->host.";dbname=".$this->db_name;
-            $conn = new PDO($conn_str, $this->username, $this->password);
-            $conn->exec("set names utf8"); // 설정을 안해주면 한글깨짐.
-            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        }catch (PDOException $exception){
-            echo "Connection error: ".$exception->getMessage();
-        }
-
-        return $conn;
-    }
-}
