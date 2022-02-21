@@ -1,11 +1,8 @@
 <?php
-namespace App\uploadTool\excelFile;
 session_start();
-
-include_once "../config/db_connection.php";
 require_once $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 
-use App\config\db\Database;
+use App\Config\Database;
 use PhpOffice\PhpSpreadsheet\Reader\Xls;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;

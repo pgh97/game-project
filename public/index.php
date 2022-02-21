@@ -1,90 +1,81 @@
 <?php
-use App\config\Database;
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Selective\BasePath\BasePathMiddleware;
+declare(strict_types=1);
+
+use App\Application\Handlers\HttpErrorHandler;
+use App\Application\Handlers\ShutdownHandler;
+use App\Application\ResponseEmitter\ResponseEmitter;
+use App\Application\Settings\SettingsInterface;
+use DI\ContainerBuilder;
 use Slim\Factory\AppFactory;
+use Slim\Factory\ServerRequestCreatorFactory;
 
-require_once __DIR__ . '/../vendor/autoload.php';
-//include_once __DIR__ ."/../src/config/db_connection.php";
+require __DIR__ . '/../vendor/autoload.php';
 
+// Instantiate PHP-DI ContainerBuilder, 컨테이너 빌더 생성
+$containerBuilder = new ContainerBuilder();
+
+if (false) { // Should be set to true in production
+    $containerBuilder->enableCompilation(__DIR__ . '/../var/cache');
+}
+
+// Set up settings, 세팅 관련 php (DB 정보 까지)
+$settings = require __DIR__ . '/../app/settings.php';
+$settings($containerBuilder);
+
+// Set up dependencies, 의존성 관련 php
+$dependencies = require __DIR__ . '/../app/dependencies.php';
+$dependencies($containerBuilder);
+
+// Set up repositories, DB 관련 저장소
+$repositories = require __DIR__ . '/../app/repositories.php';
+$repositories($containerBuilder);
+
+// Build PHP-DI Container instance, 컨테이너 인스턴스 생성
+$container = $containerBuilder->build();
+
+// Instantiate the app, 앱 실행 컨테이너 코드
+AppFactory::setContainer($container);
 $app = AppFactory::create();
+$callableResolver = $app->getCallableResolver();
 
-$app->addBodyParsingMiddleware();
+// Register middleware, 미들웨어 등록 관련 php
+$middleware = require __DIR__ . '/../app/middleware.php';
+$middleware($app);
+
+// Register routes, 라우터 관련 php 예로 들면, api url 관련된 것들이 모여있는 곳
+$routes = require __DIR__ . '/../app/routes.php';
+$routes($app);
+
+/** @var SettingsInterface $settings */
+$settings = $container->get(SettingsInterface::class);
+
+$displayErrorDetails = $settings->get('displayErrorDetails');
+$logError = $settings->get('logError');
+$logErrorDetails = $settings->get('logErrorDetails');
+
+// Create Request object from globals
+$serverRequestCreator = ServerRequestCreatorFactory::create();
+$request = $serverRequestCreator->createServerRequestFromGlobals();
+
+// Create Error Handler, 서버 에러나 썻다운 헨들러 관련된 것들
+$responseFactory = $app->getResponseFactory();
+$errorHandler = new HttpErrorHandler($callableResolver, $responseFactory);
+
+// Create Shutdown Handler
+$shutdownHandler = new ShutdownHandler($request, $errorHandler, $displayErrorDetails);
+register_shutdown_function($shutdownHandler);
+
+// Add Routing Middleware
 $app->addRoutingMiddleware();
-$app->add(new BasePathMiddleware($app));
-$app->addErrorMiddleware(true, true, true);
 
-$app->get('/', function (Request $request, Response $response) {
-    $response->getBody()->write('public Hello World!');
-    return $response;
-});
+// Add Body Parsing Middleware
+$app->addBodyParsingMiddleware();
 
-$app->get('/hello/{name}', function (Request $request, Response $response) {
-    $name = $request->getAttribute('name');
-    $response->getBody()->write("Hello, $name");
-    return $response;
-});
+// Add Error Middleware
+$errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logError, $logErrorDetails);
+$errorMiddleware->setDefaultErrorHandler($errorHandler);
 
-$app->get('/fish-info-data/all', function (Request $request, Response $response) {
-    $sql = "SELECT * FROM fish_info_data";
-
-    try {
-        $db = new Database();
-        $conn = $db->getConnection();
-        $stmt = $conn->query($sql);
-        $customers = $stmt->fetchAll(PDO::FETCH_OBJ);
-        $db = null;
-
-        $response->getBody()->write(json_encode($customers));
-        return $response
-            ->withHeader('content-type', 'application/json')
-            ->withStatus(200);
-    } catch (PDOException $e) {
-        $error = array(
-            "message" => $e->getMessage()
-        );
-
-        $response->getBody()->write(json_encode($error));
-        return $response
-            ->withHeader('content-type', 'application/json')
-            ->withStatus(500);
-    }
-});
-
-// Customer Routes
-//require_once '../app/routes/customers.php';
-
-//function availableLibraryId($id) {
-//    return (int)$id && $id > 0 && $id <= 5;
-//}
-
-//$app->group('/library', function () {
-//
-//    $this->map(['GET'], '', function (Request $request, Response $response) {
-//        return $response->withJson(['message' => 'Welcome, please pick a libray']);
-//    });
-//    $this->get('/{id}', function (Request $request, Response $response, $args) {
-//        if(availableLibraryId($args['id'])) {
-//            return $response->withJson(['message' => "library ".$args['id']]);
-//        }
-//        return $response->withJson(['message' => 'library Not Found'], 404);
-//    });
-//    $this->map(['POST', 'PUT', 'PATCH'], '/{id}', function (Request $request, Response $response, $args) {
-//        if(availableLibraryId($args['id'])) {
-//            return $response->withJson(['message' => "library ".$args['id']." updated successfully"]);
-//        }
-//        return $response->withJson(['message' => 'library Not Found'], 404);
-//    });
-//    $this->delete('/{id}', function (Request $request, Response $response, $args) {
-//        if(availableLibraryId($args['id'])) {
-//            return $response->withJson(['message' => "library ".$args['id']." deleted successfully"]);
-//        }
-//        return $response->withJson(['message' => 'library Not Found'], 404);
-//    });
-//});
-
-// Run app
-//$app = (new App\routes\library\LibraryRoute())->get();
-
-$app->run();
+// Run App & Emit Response
+$response = $app->handle($request);
+$responseEmitter = new ResponseEmitter();
+$responseEmitter->emit($response);
