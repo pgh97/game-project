@@ -22,10 +22,11 @@ return function (ContainerBuilder $containerBuilder) {
                 ],
                 "db" => [
                     'driver' => 'mysql',
-                    'host' => 'localhost',
-                    'username' => 'root',
-                    'database' => 'fishgame',
-                    'password' => 'Q1w2e3r4!@',
+                    'host' => $_SERVER['DB_HOST'],
+                    'username' => $_SERVER['DB_USER'],
+                    'database' => $_SERVER['DB_NAME'],
+                    'password' => $_SERVER['DB_PASS'],
+                    'port' => $_SERVER['DB_PORT'],
                     'charset' => 'utf8mb4',
                     'collation' => 'utf8mb4_unicode_ci',
                     'flags' => [
@@ -38,6 +39,14 @@ return function (ContainerBuilder $containerBuilder) {
                         // Set default fetch mode to array
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
                     ],
+                ],
+                'redis' => [
+                    'enabled' => $_SERVER['REDIS_ENABLED'],
+                    'url' => $_SERVER['REDIS_URL'],
+                ],
+                'app' => [
+                    'domain' => $_SERVER['APP_DOMAIN'],
+                    'secret' => $_SERVER['SECRET_KEY'],
                 ],
             ]);
         }

@@ -18,6 +18,15 @@ if (false) { // Should be set to true in production
     $containerBuilder->enableCompilation(__DIR__ . '/../var/cache');
 }
 
+// .env 환경 파일 로드 주입?
+$baseDir = __DIR__ . '/../';
+$dotenv = Dotenv\Dotenv::createImmutable($baseDir);
+$envFile = $baseDir . '.env';
+if (file_exists($envFile)) {
+    $dotenv->load();
+}
+$dotenv->required(['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_PORT']);
+
 // Set up settings, 세팅 관련 php (DB 정보 까지)
 $settings = require __DIR__ . '/../app/settings.php';
 $settings($containerBuilder);

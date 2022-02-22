@@ -36,6 +36,7 @@ return function (ContainerBuilder $containerBuilder) {
             $dbname = $dbSettings['database'];
             $username = $dbSettings['username'];
             $password = $dbSettings['password'];
+            $port = $dbSettings['port'];
             $charset = $dbSettings['charset'];
             $flags = $dbSettings['flags'];
             $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
