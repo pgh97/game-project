@@ -319,7 +319,7 @@ create table account_info (
     account_pw varchar(200) not null,
     country_code int not null,
     language_code int not null,
-    last_login_data int not null,
+    last_login_date timestamp null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP,
     unique index(account_id)
 );

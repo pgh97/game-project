@@ -30,7 +30,6 @@
     * docs > APIDocs > API명세서.xlsx
         * API 명세서 작성
 ---
-### 현재 진행상황 (2022-02-22)
-* API 기능 명세서 작성 완료
+### 현재 진행상황 (2022-02-23)
 * Slim Framework 학습 진행
 * API Auth 개발 진행 중

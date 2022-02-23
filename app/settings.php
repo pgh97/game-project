@@ -17,7 +17,7 @@ return function (ContainerBuilder $containerBuilder) {
                 'logErrorDetails'     => false,
                 'logger' => [
                     'name' => 'uruk-game-app',
-                    'path' => isset($_ENV['docker']) ? 'php://stdout' : __DIR__ . '/../logs/app.log',
+                    'path' => isset($_ENV['docker']) ? 'php://stdout' : '/game/public_html/logs/app.log',
                     'level' => Logger::DEBUG,
                 ],
                 "db" => [

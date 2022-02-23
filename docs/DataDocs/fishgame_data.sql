@@ -28,7 +28,7 @@ CREATE TABLE `account_info` (
   `hive_code` int(11) DEFAULT NULL,
   `country_code` int(11) NOT NULL,
   `language_code` int(11) NOT NULL,
-  `last_login_data` int(11) NOT NULL,
+  `last_login_date` timestamp NULL,
   `create_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`account_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

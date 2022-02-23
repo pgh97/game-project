@@ -6,12 +6,15 @@ namespace App\Application\Actions;
 use App\Domain\DomainException\DomainRecordNotFoundException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Slim\Exception\HttpBadRequestException;
 use Slim\Exception\HttpNotFoundException;
 
 abstract class Action
 {
+    private ContainerInterface $container;
+
     protected LoggerInterface $logger;
 
     protected Request $request;
@@ -20,8 +23,9 @@ abstract class Action
 
     protected array $args;
 
-    public function __construct(LoggerInterface $logger)
+    public function __construct(ContainerInterface $container, LoggerInterface $logger)
     {
+        $this->container = $container;
         $this->logger = $logger;
     }
 
