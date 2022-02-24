@@ -1,9 +1,12 @@
 <?php
 declare(strict_types=1);
 
+use App\Domain\Auth\Repository\AccountInfoRepository;
+use App\Infrastructure\Persistence\Auth\AccountInfoDBRepository;
 use DI\ContainerBuilder;
 
 return function (ContainerBuilder $containerBuilder) {
-    // Here we map our UserRepository interface to its in memory implementation
-
+    $containerBuilder->addDefinitions([
+        AccountInfoRepository::class => \DI\autowire(AccountInfoDBRepository::class),
+    ]);
 };

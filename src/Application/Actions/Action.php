@@ -13,7 +13,7 @@ use Slim\Exception\HttpNotFoundException;
 
 abstract class Action
 {
-    private ContainerInterface $container;
+    protected ContainerInterface $container;
 
     protected LoggerInterface $logger;
 
@@ -23,9 +23,14 @@ abstract class Action
 
     protected array $args;
 
-    public function __construct(ContainerInterface $container, LoggerInterface $logger)
+    /*public function __construct(ContainerInterface $container, LoggerInterface $logger)
     {
         $this->container = $container;
+        $this->logger = $logger;
+    }*/
+
+    public function __construct(LoggerInterface $logger)
+    {
         $this->logger = $logger;
     }
 
@@ -40,7 +45,7 @@ abstract class Action
         $this->args = $args;
 
         try {
-            return $this->action();
+            return $this->action($request, $response);
         } catch (DomainRecordNotFoundException $e) {
             throw new HttpNotFoundException($this->request, $e->getMessage());
         }
@@ -50,7 +55,7 @@ abstract class Action
      * @throws DomainRecordNotFoundException
      * @throws HttpBadRequestException
      */
-    abstract protected function action(): Response;
+    abstract protected function action(Request $request, Response $response): Response;
 
     /**
      * @return array|object

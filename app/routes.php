@@ -21,9 +21,12 @@ return function (App $app) {
         return $response->withHeader('Content-Type', 'application/json');
     });
 
-    $app->group('/api/v1', function () use ($app): void{
-        $app->group('/auth', function (Group $group){
-            $group->get('/signup', ViewUserAction::class);
+    $app->group('/api/v1', function (Group $group){
+        $group->group('/auth', function (Group $auth){
+            $auth->post('/signup', Actions\Auth\CreateAuthAction::class);
+        });
+        $group->group('/auth', function (Group $auth){
+            $auth->post('/login', Actions\Auth\LoginAuthAction::class);
         });
     });
 };

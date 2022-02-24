@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Domain\Auth\Entity;
 
@@ -161,8 +162,20 @@ class AccountInfo implements JsonSerializable
     }
 
     #[\ReturnTypeWillChange]
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
-        // TODO: Implement jsonSerialize() method.
+        return [
+            'accountCode' => $this->accountCode,
+            'accountId' => $this->accountId,
+            'accountPw' => $this->accountPw,
+            'accountType' => $this->accountType,
+            'createDate' => $this->createDate,
+            'lastLoginDate' => $this->lastLoginDate,
+        ];
+    }
+
+    public function toJson(): object
+    {
+        return json_decode((string) json_encode(get_object_vars($this)), false);
     }
 }

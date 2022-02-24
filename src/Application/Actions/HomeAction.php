@@ -13,7 +13,7 @@ final class HomeAction
 
     public function __construct(ContainerInterface $container, LoggerInterface $logger)
     {
-        $this->container = $container;
+        //$this->container = $container;
         $this->logger = $logger;
     }
 
