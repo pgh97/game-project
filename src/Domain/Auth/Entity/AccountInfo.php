@@ -11,11 +11,12 @@ class AccountInfo implements JsonSerializable
     private int $accountType;
     private ?int $hiveCode;
     private string $accountId;
-    private string $accountPw;
+    private ?string $accountPw = null;
     private int $countryCode;
     private int $languageCode;
     private string $lastLoginDate;
     private string $createDate;
+    private ?bool $isSuccess = true;
 
     /**
      * @return int
@@ -159,6 +160,22 @@ class AccountInfo implements JsonSerializable
     public function setCreateDate(string $createDate): void
     {
         $this->createDate = $createDate;
+    }
+
+    /**
+     * @return bool|null
+     */
+    public function getIsSuccess(): ?bool
+    {
+        return $this->isSuccess;
+    }
+
+    /**
+     * @param bool|null $isSuccess
+     */
+    public function setIsSuccess(?bool $isSuccess): void
+    {
+        $this->isSuccess = $isSuccess;
     }
 
     #[\ReturnTypeWillChange]

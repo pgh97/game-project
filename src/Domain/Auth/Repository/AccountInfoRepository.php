@@ -18,4 +18,10 @@ interface AccountInfoRepository
      * @return AccountInfo
      */
     public function loginAccountInfo(AccountInfo $accountInfo): AccountInfo;
+
+    /**
+     * @param AccountInfo $accountInfo
+     * @return AccountInfo
+     */
+    public function modifyAccountInfo(AccountInfo $accountInfo): AccountInfo;
 }

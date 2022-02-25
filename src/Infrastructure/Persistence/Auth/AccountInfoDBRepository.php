@@ -57,12 +57,53 @@ class AccountInfoDBRepository extends BaseRepository implements AccountInfoRepos
     public function loginAccountInfo(AccountInfo $accountInfo): AccountInfo
     {
         $query = '
-            SELECT *
+            SELECT 
+                account_code        AS accountCode
+                ,account_type       AS accountType
+                ,hive_code          AS hiveCode
+                ,account_id         AS accountId
+                ,country_code       AS countryCode
+                ,language_code      AS languageCode
+                ,last_login_date    AS lastLoginDate
+                ,create_date        AS createDate
             FROM `account_info`
-            WHERE `account_id` = :accountId
+            WHERE account_id = :accountId AND account_pw = :accountPw
         ';
         $statement = $this->database->prepare($query);
-        $accountId = $accountInfo->getAccountType();
+        $accountId = $accountInfo->getAccountId();
+        $accountPw = $accountInfo->getAccountPw();
+
+        $statement->bindParam(':accountId', $accountId);
+        $statement->bindParam(':accountPw', $accountPw);
+        $statement->execute();
+
+        if($statement->rowCount() > 0){
+            return $statement->fetchObject(AccountInfo::class);
+        }else{
+            $failAccountInfo = new AccountInfo();
+            $failAccountInfo->setIsSuccess(false);
+            return $failAccountInfo;
+        }
+    }
+
+    public function modifyAccountInfo(AccountInfo $accountInfo): AccountInfo
+    {
+        $query = '
+            SELECT 
+                account_code        AS accountCode
+                ,account_type       AS accountType
+                ,hive_code          AS hiveCode
+                ,account_id         AS accountId
+                ,account_pw         AS accountPw
+                ,country_code       AS countryCode
+                ,language_code      AS languageCode
+                ,last_login_date    AS lastLoginDate
+                ,create_date        AS createDate
+            FROM `account_info`
+            WHERE account_id = :accountId
+        ';
+        $statement = $this->database->prepare($query);
+        $accountId = $accountInfo->getAccountId();
 
         $statement->bindParam(':accountId', $accountId);
         $statement->execute();

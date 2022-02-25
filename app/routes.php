@@ -24,9 +24,12 @@ return function (App $app) {
     $app->group('/api/v1', function (Group $group){
         $group->group('/auth', function (Group $auth){
             $auth->post('/signup', Actions\Auth\CreateAuthAction::class);
-        });
-        $group->group('/auth', function (Group $auth){
             $auth->post('/login', Actions\Auth\LoginAuthAction::class);
+        });
+
+        $group->group('/user', function (Group $user){
+            $user->post('/generate', Actions\User\CreateUserAction::class);
+            $user->post('/infos', Actions\User\GetUserAction::class);
         });
     });
 };

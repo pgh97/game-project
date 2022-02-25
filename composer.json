@@ -13,7 +13,7 @@
     "slim/slim": "4.*",
     "slim/psr7": "^1.5",
     "php-di/php-di": "^6.3",
-    "firebase/php-jwt": "^5.0",
+    "firebase/php-jwt": "^6.0",
     "predis/predis": "^1.1",
     "vlucas/phpdotenv": "^5.4",
     "selective/basepath": "2.1.0",

@@ -4,7 +4,9 @@ namespace App\Domain\Auth\Service;
 
 use App\Domain\Auth\Entity\AccountInfo;
 use App\Domain\Auth\Repository\AccountInfoRepository;
+use App\Exception\AccountInfoException;
 use Psr\Log\LoggerInterface;
+use Firebase\JWT\JWT;
 
 class AccountInfoService
 {
@@ -24,7 +26,12 @@ class AccountInfoService
         $myAccountInfo->setAccountType($data->accountType);
         $myAccountInfo->setHiveCode($data->hiveCode);
         $myAccountInfo->setAccountId($data->accountId);
-        $myAccountInfo->setAccountPw(password_hash($data->accountPw,PASSWORD_DEFAULT));
+
+        // 1. 비밀번호 암호화 방법
+        //$myAccountInfo->setAccountPw(password_hash($data->accountPw,PASSWORD_BCRYPT));
+
+        // 2. 비밀번호 암호화 방법
+        $myAccountInfo->setAccountPw(hash('sha256', $data->accountPw));
         $myAccountInfo->setCountryCode($data->countryCode);
         $myAccountInfo->setLanguageCode($data->languageCode);
 
@@ -34,22 +41,58 @@ class AccountInfoService
         return $accountInfo;
     }
 
-    public function loginAccountInfo(array $input): object
+    /**
+     * @throws \Exception
+     */
+    public function loginAccountInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myAccountInfo = new AccountInfo();
 
+        if (! isset($data->accountId)) {
+            throw new AccountInfoException('The field "ID" is required.', 400);
+        }
+        if (! isset($data->accountPw)) {
+            throw new AccountInfoException('The field "PASSWORD" is required.', 400);
+        }
+
         $myAccountInfo->setAccountId($data->accountId);
+        // 2. 비밀번호 암호화 방법
+        $myAccountInfo->setAccountPw(hash('sha256', $data->accountPw));
 
         /** @var TYPE_NAME $accountInfo */
         $accountInfo = $this->accountInfoRepository->loginAccountInfo($myAccountInfo);
 
-        if(password_verify($data->accountPw, $accountInfo->getAccountPw())){
+        // 1. 비밀번호 암호화 방법 (복호화가 안되기 때문에 비교를 해야함)
+        /*if(password_verify($data->accountPw, $accountInfo->getAccountPw())){
             $this->logger->info("success login account service");
-            return $accountInfo;
         }else{
             $this->logger->info("fail login account service");
-            return 0;
+        }*/
+
+        if(!$accountInfo->getIsSuccess()){
+            /*return [
+                'Authorization' => null,
+                'accountInfo' => null,
+            ];*/
+            return array();
+        }else{
+            $token = [
+                'sub' => $accountInfo->getAccountCode(),
+                'email' => $accountInfo->getAccountId(),
+                'iat' => time(),
+                'exp' => time() + (7 * 24 * 60 * 60),
+            ];
+
+            return [
+                'Authorization' => 'Bearer ' .JWT::encode($token, $_SERVER['SECRET_KEY'], 'HS256'),
+                'accountInfo' => $accountInfo,
+            ];
         }
+    }
+
+    public function modifyAccountInfo(array $input): AccountInfo
+    {
+        return 0;
     }
 }

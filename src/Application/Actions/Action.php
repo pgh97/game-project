@@ -13,8 +13,6 @@ use Slim\Exception\HttpNotFoundException;
 
 abstract class Action
 {
-    protected ContainerInterface $container;
-
     protected LoggerInterface $logger;
 
     protected Request $request;
@@ -22,12 +20,6 @@ abstract class Action
     protected Response $response;
 
     protected array $args;
-
-    /*public function __construct(ContainerInterface $container, LoggerInterface $logger)
-    {
-        $this->container = $container;
-        $this->logger = $logger;
-    }*/
 
     public function __construct(LoggerInterface $logger)
     {
@@ -81,9 +73,9 @@ abstract class Action
     /**
      * @param array|object|null $data
      */
-    protected function respondWithData($data = null, int $statusCode = 200): Response
+    protected function respondWithData($data = null, int $statusCode = 200 ,?ActionError $error = null, ?string $message = null): Response
     {
-        $payload = new ActionPayload($statusCode, $data);
+        $payload = new ActionPayload($statusCode, $data, $message, $error);
 
         return $this->respond($payload);
     }
