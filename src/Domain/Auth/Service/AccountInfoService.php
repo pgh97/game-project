@@ -78,10 +78,14 @@ class AccountInfoService
             return array();
         }else{
             $token = [
-                'sub' => $accountInfo->getAccountCode(),
-                'email' => $accountInfo->getAccountId(),
+                'iss' => "http://localhost:8888",
                 'iat' => time(),
+                'nbf' => time(),
                 'exp' => time() + (7 * 24 * 60 * 60),
+                'data' => [
+                    'accountCode' => $accountInfo->getAccountCode(),
+                    'accountId' => $accountInfo->getAccountId(),
+                ]
             ];
 
             return [

@@ -30,6 +30,6 @@
     * docs > APIDocs > API명세서.xlsx
         * API 명세서 작성
 ---
-### 현재 진행상황 (2022-02-25)
-* Slim Framework 학습 진행
-* API 캐릭터 등록 개발 진행 중 (JWT 사용)
+### 현재 진행상황 (2022-03-07)
+* JWT MiddleWare class 추가 및 설정 완료
+* API 캐릭터 등록 개발 진행

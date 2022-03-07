@@ -19,7 +19,19 @@ class UserInfoService
 
     public function createUserInfo(array $input): int
     {
-        return 0;
+        $data = json_decode((string) json_encode($input), false);
+        $myUserInfo = new UserInfo();
+
+        $myUserInfo->setAccountCode($data->decoded->data->accountCode);
+        $myUserInfo->setUserNickNm($data->user_nicknm);
+        $myUserInfo->setUserExperience($data->user_experience);
+        $myUserInfo->setMoneyGold($data->money_gold);
+        $myUserInfo->setMoneyPearl($data->money_pearl);
+        $myUserInfo->setFatigue($data->fatigue);
+
+        $userInfo = $this->infoRepository->createUserInfo($myUserInfo);
+        $this->logger->info("create user service");
+        return $userInfo;
     }
 
     public function getUserInfo(array $input): UserInfo

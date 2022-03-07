@@ -21,7 +21,7 @@ class LoginAuthAction extends AuthAction
 
         if(empty($payload)){
             $this->logger->info("fail account info Action");
-            $error = new ActionError(401,  ActionError::UNAUTHENTICATED, '인증체크 실패입니다.');
+            $error = new ActionError("401",  ActionError::UNAUTHENTICATED, '인증체크 실패입니다.');
             return $this->respondWithData(null, 401, $error, );
         }else{
             $this->logger->info("login account info Action");
