@@ -184,7 +184,6 @@ class AccountInfo implements JsonSerializable
         return [
             'accountCode' => $this->accountCode,
             'accountId' => $this->accountId,
-            'accountPw' => $this->accountPw,
             'accountType' => $this->accountType,
             'createDate' => $this->createDate,
             'lastLoginDate' => $this->lastLoginDate,

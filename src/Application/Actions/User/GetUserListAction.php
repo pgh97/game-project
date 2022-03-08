@@ -7,17 +7,14 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpBadRequestException;
 
-class GetUserAction extends UserAction
+class GetUserListAction extends UserAction
 {
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
         $service = new UserInfoService($this->logger, $this->userInfoRepository);
-        $userInfo = $service->getUserInfo($input);
-        $payload = [
-            'userInfo' => $userInfo
-        ];
-        $this->logger->info("get user info Action");
-        return $this->respondWithData($payload);
+        $userCode = $service->getUserInfoList($input);
+        $this->logger->info("get List user info Action");
+        return $this->respondWithData($userCode);
     }
 }

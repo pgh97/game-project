@@ -21,7 +21,6 @@ interface AccountInfoRepository
 
     /**
      * @param AccountInfo $accountInfo
-     * @return AccountInfo
      */
-    public function modifyAccountInfo(AccountInfo $accountInfo): AccountInfo;
+    public function modifyLastLoginDate(AccountInfo $accountInfo): int;
 }

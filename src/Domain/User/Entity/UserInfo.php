@@ -14,8 +14,8 @@ class UserInfo implements JsonSerializable
     private int $moneyGold;
     private int $moneyPearl;
     private int $fatigue;
-    private string $userInventoryCount;
-    private string $userSaveItemCount;
+    private int $useInventoryCount;
+    private int $useSaveItemCount;
     private string $createDate;
 
     /**
@@ -149,33 +149,33 @@ class UserInfo implements JsonSerializable
     /**
      * @return string
      */
-    public function getUserInventoryCount(): string
+    public function getUseInventoryCount(): string
     {
-        return $this->userInventoryCount;
+        return $this->useInventoryCount;
     }
 
     /**
-     * @param string $userInventoryCount
+     * @param string $useInventoryCount
      */
-    public function setUserInventoryCount(string $userInventoryCount): void
+    public function setUseInventoryCount(string $useInventoryCount): void
     {
-        $this->userInventoryCount = $userInventoryCount;
+        $this->useInventoryCount = $useInventoryCount;
     }
 
     /**
      * @return string
      */
-    public function getUserSaveItemCount(): string
+    public function getUseSaveItemCount(): string
     {
-        return $this->userSaveItemCount;
+        return $this->useSaveItemCount;
     }
 
     /**
-     * @param string $userSaveItemCount
+     * @param string $useSaveItemCount
      */
-    public function setUserSaveItemCount(string $userSaveItemCount): void
+    public function setUseSaveItemCount(string $useSaveItemCount): void
     {
-        $this->userSaveItemCount = $userSaveItemCount;
+        $this->useSaveItemCount = $useSaveItemCount;
     }
 
     /**
@@ -197,7 +197,19 @@ class UserInfo implements JsonSerializable
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-        // TODO: Implement jsonSerialize() method.
+        return [
+            'userCode' => $this->userCode,
+            'accountCode' => $this->accountCode,
+            'userNickNm' => $this->userNickNm,
+            'levelCode' => $this->levelCode,
+            'userExperience' => $this->userExperience,
+            'moneyGold' => $this->moneyGold,
+            'moneyPearl' => $this->moneyPearl,
+            'fatigue' => $this->fatigue,
+            'useInventoryCount' => $this->useInventoryCount,
+            'useSaveItemCount' => $this->useSaveItemCount,
+            'createDate' => $this->createDate,
+        ];
     }
 
     public function toJson(): object

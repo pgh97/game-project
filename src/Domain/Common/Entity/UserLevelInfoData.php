@@ -4,7 +4,7 @@ namespace App\Domain\Common\Entity;
 
 use JsonSerializable;
 
-class UserLevelInfoData implements \JsonSerializable
+class UserLevelInfoData implements JsonSerializable
 {
     private int $levelCode;
     private int $levelExperience;

@@ -2,22 +2,19 @@
 
 namespace App\Application\Actions\User;
 
+use App\Domain\DomainException\DomainRecordNotFoundException;
 use App\Domain\User\Service\UserInfoService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpBadRequestException;
 
-class GetUserAction extends UserAction
+class GetWeatherInfoAction extends UserAction
 {
+
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
         $service = new UserInfoService($this->logger, $this->userInfoRepository);
-        $userInfo = $service->getUserInfo($input);
-        $payload = [
-            'userInfo' => $userInfo
-        ];
-        $this->logger->info("get user info Action");
-        return $this->respondWithData($payload);
+        return $this->respondWithData("");
     }
 }

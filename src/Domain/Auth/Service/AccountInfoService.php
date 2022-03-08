@@ -71,12 +71,10 @@ class AccountInfoService
         }*/
 
         if(!$accountInfo->getIsSuccess()){
-            /*return [
-                'Authorization' => null,
-                'accountInfo' => null,
-            ];*/
             return array();
         }else{
+            //마지막 로그인날짜 업로드
+            $this->accountInfoRepository->modifyLastLoginDate($accountInfo);
             $token = [
                 'iss' => "http://localhost:8888",
                 'iat' => time(),

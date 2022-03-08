@@ -86,28 +86,19 @@ class AccountInfoDBRepository extends BaseRepository implements AccountInfoRepos
         }
     }
 
-    public function modifyAccountInfo(AccountInfo $accountInfo): AccountInfo
+    public function modifyLastLoginDate(AccountInfo $accountInfo): int
     {
         $query = '
-            SELECT 
-                account_code        AS accountCode
-                ,account_type       AS accountType
-                ,hive_code          AS hiveCode
-                ,account_id         AS accountId
-                ,account_pw         AS accountPw
-                ,country_code       AS countryCode
-                ,language_code      AS languageCode
-                ,last_login_date    AS lastLoginDate
-                ,create_date        AS createDate
-            FROM `account_info`
-            WHERE account_id = :accountId
+            UPDATE `account_info`
+            SET last_login_date = NOW()
+            WHERE account_code = :accountCode
         ';
         $statement = $this->database->prepare($query);
-        $accountId = $accountInfo->getAccountId();
+        $accountCode = $accountInfo->getAccountCode();
 
-        $statement->bindParam(':accountId', $accountId);
+        $statement->bindParam(':accountCode', $accountCode);
         $statement->execute();
 
-        return $statement->fetchObject(AccountInfo::class);
+        return (int) $this->database->lastInsertId();
     }
 }

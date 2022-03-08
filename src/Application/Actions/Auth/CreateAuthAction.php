@@ -14,7 +14,10 @@ class CreateAuthAction extends AuthAction
         $input = (array) $request->getParsedBody();
         $service = new AccountInfoService($this->logger ,$this->accountInfoRepository);
         $accountCode = $service->createAccountInfo($input);
+        $payload = [
+            'accountCode' => $accountCode
+        ];
         $this->logger->info("create account info Action");
-        return $this->respondWithData($accountCode);
+        return $this->respondWithData($payload);
     }
 }

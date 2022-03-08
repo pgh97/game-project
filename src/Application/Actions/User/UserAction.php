@@ -16,20 +16,4 @@ abstract class UserAction extends Action
         parent::__construct($logger);
         $this->userInfoRepository = $userInfoRepository;
     }
-
-    protected function checkUserPermissions(int $userId, int $userIdLogged): void
-    {
-        if ($userId !== $userIdLogged) {
-            throw new UserInfoException('User permission failed.', 400);
-        }
-    }
-
-    protected function getAndValidateUsers(array $input): object
-    {
-        if (isset($input['decoded']) && isset($input['decoded']->data)) {
-            return $input['decoded']->data;
-        }
-
-        throw new UserInfoException('Invalid user. Permission failed.', 400);
-    }
 }
