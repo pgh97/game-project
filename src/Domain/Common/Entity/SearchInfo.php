@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\Common;
+namespace App\Domain\Common\Entity;
 
 use JsonSerializable;
 

@@ -2,11 +2,11 @@
 
 namespace App\Domain\User\Repository;
 
-use App\Domain\Common\Entity\UserLevelInfoData;
-use App\Domain\Common\SearchInfo;
+use App\Domain\Common\Entity\Level\UserLevelInfoData;
+use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\User\Entity\UserInfo;
 
-interface UserInfoRepository
+interface UserRepository
 {
     /**
      * @param UserInfo $userInfo

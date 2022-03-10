@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use App\Application\Settings\SettingsInterface;
+use App\Domain\Common\Service\RedisService;
 use DI\ContainerBuilder;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
@@ -22,7 +23,6 @@ return function (ContainerBuilder $containerBuilder) {
 
             $handler = new StreamHandler($loggerSettings['path'], $loggerSettings['level']);
             $logger->pushHandler($handler);
-
             return $logger;
         },
 
@@ -47,5 +47,13 @@ return function (ContainerBuilder $containerBuilder) {
             $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
             return $pdo;
         },
+
+        Predis\Client::class => function (ContainerInterface $c) {
+            $settings = $c->get(SettingsInterface::class);
+            $redis = $settings->get('redis');
+            $client = new Predis\Client($redis['url']);
+            $client->auth($redis['pass']);
+            return $client;
+        }
     ]);
 };

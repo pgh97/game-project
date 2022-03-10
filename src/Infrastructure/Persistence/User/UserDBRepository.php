@@ -2,13 +2,13 @@
 
 namespace App\Infrastructure\Persistence\User;
 
-use App\Domain\Common\Entity\UserLevelInfoData;
-use App\Domain\Common\SearchInfo;
+use App\Domain\Common\Entity\Level\UserLevelInfoData;
+use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\User\Entity\UserInfo;
-use App\Domain\User\Repository\UserInfoRepository;
+use App\Domain\User\Repository\UserRepository;
 use App\Infrastructure\Persistence\BaseRepository;
 
-class UserInfoDBRepository extends BaseRepository implements UserInfoRepository
+class UserDBRepository extends BaseRepository implements UserRepository
 {
 
     public function createUserInfo(UserInfo $userInfo): int
@@ -100,6 +100,7 @@ class UserInfoDBRepository extends BaseRepository implements UserInfoRepository
                 ,create_date            AS createDate
             FROM `user_info`
             WHERE account_code = :accountCode
+            ORDER BY user_code
             LIMIT :offset , :limit
         ';
 

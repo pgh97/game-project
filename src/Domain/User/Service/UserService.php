@@ -2,21 +2,29 @@
 
 namespace App\Domain\User\Service;
 
-use App\Domain\Common\Entity\UserLevelInfoData;
-use App\Domain\Common\SearchInfo;
+use App\Domain\Common\Entity\Level\UserLevelInfoData;
+use App\Domain\Common\Entity\SearchInfo;
+use App\Domain\Common\Service\BaseService;
+use App\Domain\Common\Service\RedisService;
 use App\Domain\User\Entity\UserInfo;
-use App\Domain\User\Repository\UserInfoRepository;
+use App\Domain\User\Repository\UserRepository;
 use Psr\Log\LoggerInterface;
 
-class UserInfoService
+class UserService extends BaseService
 {
-    protected UserInfoRepository $infoRepository;
+    protected UserRepository $userRepository;
     protected LoggerInterface $logger;
+    protected RedisService $redisService;
 
-    public function __construct(LoggerInterface $logger, UserInfoRepository $infoRepository)
+    private const REDIS_KEY = 'user:%s';
+
+    public function __construct(LoggerInterface $logger
+        , UserRepository                        $userRepository
+        , RedisService                          $redisService)
     {
         $this->logger = $logger;
-        $this->infoRepository = $infoRepository;
+        $this->userRepository = $userRepository;
+        $this->redisService = $redisService;
     }
 
     public function createUserInfo(array $input): int
@@ -33,15 +41,20 @@ class UserInfoService
 
         $myLevelInfo = new UserLevelInfoData();
         $myLevelInfo->setLevelCode(1);
-        $levelInfo = $this->infoRepository->getUserLevelInfo($myLevelInfo);
+        $levelInfo = $this->userRepository->getUserLevelInfo($myLevelInfo);
 
         $myUserInfo->setLevelCode($levelInfo->getLevelCode());
         $myUserInfo->setFatigue($levelInfo->getMaxFatigue());
         $myUserInfo->setUseInventoryCount($levelInfo->getInventoryCount());
 
-        $userInfo = $this->infoRepository->createUserInfo($myUserInfo);
+        $userCode = $this->userRepository->createUserInfo($myUserInfo);
+        if (self::isRedisEnabled() === true) {
+            $myUserInfo->setUserCode($userCode);
+            $user = $this->userRepository->getUserInfo($myUserInfo);
+            $this->saveInCache($userCode, $user);
+        }
         $this->logger->info("create user service");
-        return $userInfo;
+        return $userCode;
     }
 
     public function getUserInfo(array $input): object
@@ -51,7 +64,7 @@ class UserInfoService
         $myUserInfo->setAccountCode($data->decoded->data->accountCode);
         $myUserInfo->setUserCode($data->userCode);
 
-        $userInfo = $this->infoRepository->getUserInfo($myUserInfo);
+        $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         $this->logger->info("get user service");
         return $userInfo->toJson();
     }
@@ -61,11 +74,11 @@ class UserInfoService
         $data = json_decode((string) json_encode($input), false);
         $search = new SearchInfo();
         $search->setAccountCode($data->decoded->data->accountCode);
-        $search->setLimit(10);
-        $search->setOffset(0);
+        $search->setLimit($data->limit);
+        $search->setOffset($data->offset);
 
-        $userInfoArray = $this->infoRepository->getUserInfoList($search);
-        $userInfoArrayCnt = $this->infoRepository->getUserInfoListCnt($search);
+        $userInfoArray = $this->userRepository->getUserInfoList($search);
+        $userInfoArrayCnt = $this->userRepository->getUserInfoListCnt($search);
 
         $this->logger->info("get list user service");
         if(array_filter($userInfoArray)){
@@ -91,9 +104,24 @@ class UserInfoService
         $myUserInfo->setMoneyPearl($data->moneyPearl);
         $myUserInfo->setFatigue($data->fatigue);
 
-        $this->infoRepository->ModifyUserInfo($myUserInfo);
-        $result = $this->infoRepository->getUserInfo($myUserInfo);
+        $this->userRepository->ModifyUserInfo($myUserInfo);
+        $result = $this->userRepository->getUserInfo($myUserInfo);
         $this->logger->info("update user service");
         return $result;
+    }
+
+    protected function saveInCache(int $userCode, object $user): void
+    {
+        $redisKey = sprintf(self::REDIS_KEY, $userCode);
+        $key = $this->redisService->generateKey($redisKey);
+        //$this->redisService->setex($key, $user);
+        $this->redisService->set($key, $user);
+    }
+
+    protected function deleteFromCache(int $userCode): void
+    {
+        $redisKey = sprintf(self::REDIS_KEY, $userCode);
+        $key = $this->redisService->generateKey($redisKey);
+        $this->redisService->del([$key]);
     }
 }

@@ -3,17 +3,22 @@
 namespace App\Application\Actions\User;
 
 use App\Application\Actions\Action;
-use App\Domain\User\Repository\UserInfoRepository;
+use App\Domain\Common\Service\RedisService;
+use App\Domain\User\Repository\UserRepository;
 use App\Exception\UserInfoException;
 use Psr\Log\LoggerInterface;
 
 abstract class UserAction extends Action
 {
-    protected UserInfoRepository $userInfoRepository;
+    protected UserRepository $userRepository;
+    protected RedisService $redisService;
 
-    public function __construct(LoggerInterface $logger, UserInfoRepository $userInfoRepository)
+    public function __construct(LoggerInterface $logger
+        , UserRepository                        $userRepository
+        , RedisService                          $redisService)
     {
         parent::__construct($logger);
-        $this->userInfoRepository = $userInfoRepository;
+        $this->userRepository = $userRepository;
+        $this->redisService = $redisService;
     }
 }

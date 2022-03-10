@@ -2,7 +2,7 @@
 
 namespace App\Application\Actions\User;
 
-use App\Domain\User\Service\UserInfoService;
+use App\Domain\User\Service\UserService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpBadRequestException;
@@ -12,7 +12,7 @@ class GetUserAction extends UserAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new UserInfoService($this->logger, $this->userInfoRepository);
+        $service = new UserService($this->logger, $this->userRepository, $this->redisService);
         $userInfo = $service->getUserInfo($input);
         $payload = [
             'userInfo' => $userInfo

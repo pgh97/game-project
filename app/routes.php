@@ -70,19 +70,29 @@ return function (App $app) {
             //$auction->post('/ranking', );
         })->add(new JWTAuthMiddleware());
 
-        $group->group('/upgrade', function (Group $user){
+        $group->group('/upgrade', function (Group $upgrade){
+            //$upgrade->post('/fishing-item/preview', );
+            //$upgrade->post('/fishing-item', );
+            //$upgrade->post('/ship-item/preview', );
+            //$upgrade->post('/ship-item', );
         })->add(new JWTAuthMiddleware());
 
-        $group->group('/repair', function (Group $user){
+        $group->group('/repair', function (Group $repair){
+            //$repair->post('/user', );
+            //$repair->post('/item', );
         })->add(new JWTAuthMiddleware());
 
-        $group->group('/quest', function (Group $user){
+        $group->group('/quest', function (Group $quest){
+            //$quest->post('/items', );
+            //$quest->post('/item', );
+            //$quest->post('/compensation', );
         })->add(new JWTAuthMiddleware());
 
-        $group->group('/shop', function (Group $user){
-        })->add(new JWTAuthMiddleware());
-
-        $group->group('/fishing', function (Group $user){
+        $group->group('/shop', function (Group $shop){
+            //$shop->post('/items', );
+            //$shop->post('/item/{shop_code}', );
+            //$shop->post('/item/buy', );
+            //$shop->post('/user-item/sell', );
         })->add(new JWTAuthMiddleware());
     });
 };

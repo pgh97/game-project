@@ -43,6 +43,7 @@ return function (ContainerBuilder $containerBuilder) {
                 'redis' => [
                     'enabled' => $_SERVER['REDIS_ENABLED'],
                     'url' => $_SERVER['REDIS_URL'],
+                    'pass' => $_SERVER['REDIS_PASS'],
                 ],
                 'app' => [
                     'domain' => $_SERVER['APP_DOMAIN'],
