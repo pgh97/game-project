@@ -4,7 +4,7 @@ namespace App\Domain\Common\Entity\Ship;
 
 use JsonSerializable;
 
-class shipInfoData implements JsonSerializable
+class ShipInfoData implements JsonSerializable
 {
     private int $shipCode;
     private string $shipName;

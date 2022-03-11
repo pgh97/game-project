@@ -14,7 +14,10 @@ class GetWeatherInfoAction extends UserAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new UserService($this->logger, $this->userRepository, $this->redisService);
-        return $this->respondWithData("");
+        $service = new UserService($this->logger, $this->userRepository
+            ,$this->commonRepository, $this->redisService);
+        $payload = $service->getUserWeatherInfo($input);
+        $this->logger->info("get user weather Action");
+        return $this->respondWithData($payload);
     }
 }

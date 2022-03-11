@@ -25,6 +25,7 @@ return function (App $app) {
         $group->group('/auth', function (Group $auth){
             $auth->post('/signup', Actions\Auth\CreateAuthAction::class);
             $auth->post('/login', Actions\Auth\LoginAuthAction::class);
+            //$auth->post('/remove', );
         });
 
         $group->group('/user', function (Group $user){
@@ -33,12 +34,14 @@ return function (App $app) {
             $user->post('/info', Actions\User\GetUserAction::class);
             $user->post('/info/change', Actions\User\ModifyUserAction::class);
             //$user->post('/level-up', );
+            //$user->post('/remove', );
+            $user->post('/choice', Actions\User\ChoiceUserAction::class);
             $user->post('/my-weather', Actions\User\GetWeatherInfoAction::class);
-            //$user->post('/my-weather/change', );
-            //$user->post('/my-ship', );
+            $user->post('/my-weather/change', Actions\User\ModifyWeatherAction::class);
+            $user->post('/my-ship', Actions\User\GetUserShipAction::class);
             //$user->post('/fish-dictionary', );
-            //$user->post('/inventory-items', );
-            //$user->post('/inventory-item', );
+            $user->post('/inventory-items', Actions\User\GetUserInventoryListAction::class);
+            $user->post('/inventory-item', Actions\User\GetUserInventoryAction::class);
             //$user->post('/inventory-item/change', );
             //$user->post('/inventory-item/remove', );
             //$user->post('/fishing-items', );

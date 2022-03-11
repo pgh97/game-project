@@ -8,7 +8,7 @@ use JsonSerializable;
 class QuestInfoData implements JsonSerializable
 {
     private int $questCode;
-    private int $questType;
+    private int $questType; //레벨업: 1, 도감: 2
     private int $questGoal;
     private string $createDate;
 

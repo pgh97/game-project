@@ -10,6 +10,7 @@ use App\Domain\Upgrade\Repository\UpgradeRepository;
 use App\Domain\Repair\Repository\RepairRepository;
 use App\Domain\Quest\Repository\QuestRepository;
 use App\Domain\Shop\Repository\ShopRepository;
+use App\Domain\Common\Repository\CommonRepository;
 
 use App\Infrastructure\Persistence\Auth\AccountInfoDBRepository;
 use App\Infrastructure\Persistence\User\UserDBRepository;
@@ -20,6 +21,7 @@ use App\Infrastructure\Persistence\Upgrade\UpgradeDBRepository;
 use App\Infrastructure\Persistence\Repair\RepairDBRepository;
 use App\Infrastructure\Persistence\Quest\QuestDBRepository;
 use App\Infrastructure\Persistence\Shop\ShopDBRepository;
+use App\Infrastructure\Persistence\Common\CommonDBRepository;
 use DI\ContainerBuilder;
 
 return function (ContainerBuilder $containerBuilder) {
@@ -33,5 +35,6 @@ return function (ContainerBuilder $containerBuilder) {
         RepairRepository::class => \DI\autowire(RepairDBRepository::class),
         QuestRepository::class => \DI\autowire(QuestDBRepository::class),
         ShopRepository::class => \DI\autowire(ShopDBRepository::class),
+        CommonRepository::class => \DI\autowire(CommonDBRepository::class),
     ]);
 };

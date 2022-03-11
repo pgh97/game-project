@@ -7,8 +7,8 @@ use JsonSerializable;
 class temperatureInfoData implements JsonSerializable
 {
     private int $temperatureCode;
-    private int $minTemperatureCode;
-    private int $maxTemperatureCode;
+    private int $minTemperature;
+    private int $maxTemperature;
     private int $changeTime;
     private int $changeValue;
     private string $createDate;
@@ -32,33 +32,33 @@ class temperatureInfoData implements JsonSerializable
     /**
      * @return int
      */
-    public function getMinTemperatureCode(): int
+    public function getMinTemperature(): int
     {
-        return $this->minTemperatureCode;
+        return $this->minTemperature;
     }
 
     /**
-     * @param int $minTemperatureCode
+     * @param int $minTemperature
      */
-    public function setMinTemperatureCode(int $minTemperatureCode): void
+    public function setMinTemperature(int $minTemperature): void
     {
-        $this->minTemperatureCode = $minTemperatureCode;
+        $this->minTemperature = $minTemperature;
     }
 
     /**
      * @return int
      */
-    public function getMaxTemperatureCode(): int
+    public function getMaxTemperature(): int
     {
-        return $this->maxTemperatureCode;
+        return $this->maxTemperature;
     }
 
     /**
-     * @param int $maxTemperatureCode
+     * @param int $maxTemperature
      */
-    public function setMaxTemperatureCode(int $maxTemperatureCode): void
+    public function setMaxTemperature(int $maxTemperature): void
     {
-        $this->maxTemperatureCode = $maxTemperatureCode;
+        $this->maxTemperature = $maxTemperature;
     }
 
     /**
@@ -114,8 +114,8 @@ class temperatureInfoData implements JsonSerializable
     {
         return [
             'temperatureCode' => $this->temperatureCode,
-            'minTemperatureCode' => $this->minTemperatureCode,
-            'maxTemperatureCode' => $this->maxTemperatureCode,
+            'minTemperatureCode' => $this->minTemperature,
+            'maxTemperatureCode' => $this->maxTemperature,
             'changeTime' => $this->changeTime,
             'changeValue' => $this->changeValue,
             'createDate' => $this->createDate,

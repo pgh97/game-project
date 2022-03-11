@@ -12,7 +12,8 @@ class GetUserListAction extends UserAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new UserService($this->logger, $this->userRepository, $this->redisService);
+        $service = new UserService($this->logger, $this->userRepository
+            , $this->commonRepository, $this->redisService);
         $userCode = $service->getUserInfoList($input);
         $this->logger->info("get List user info Action");
         return $this->respondWithData($userCode);

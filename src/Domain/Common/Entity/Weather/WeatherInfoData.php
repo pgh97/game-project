@@ -11,6 +11,17 @@ class WeatherInfoData implements JsonSerializable
     private int $windCode;
     private string $createDate;
 
+    // wind_info_data
+    private int $minWind;
+    private int $maxWind;
+    private int $windChangeTime;
+
+    //temperature_info_data
+    private int $minTemperature;
+    private int $maxTemperature;
+    private int $temperatureChangeTime;
+    private int $changeValue;
+
     /**
      * @return int
      */
@@ -75,6 +86,118 @@ class WeatherInfoData implements JsonSerializable
         $this->createDate = $createDate;
     }
 
+    /**
+     * @return int
+     */
+    public function getMinWind(): int
+    {
+        return $this->minWind;
+    }
+
+    /**
+     * @param int $minWind
+     */
+    public function setMinWind(int $minWind): void
+    {
+        $this->minWind = $minWind;
+    }
+
+    /**
+     * @return int
+     */
+    public function getMaxWind(): int
+    {
+        return $this->maxWind;
+    }
+
+    /**
+     * @param int $maxWind
+     */
+    public function setMaxWind(int $maxWind): void
+    {
+        $this->maxWind = $maxWind;
+    }
+
+    /**
+     * @return int
+     */
+    public function getWindChangeTime(): int
+    {
+        return $this->windChangeTime;
+    }
+
+    /**
+     * @param int $windChangeTime
+     */
+    public function setWindChangeTime(int $windChangeTime): void
+    {
+        $this->windChangeTime = $windChangeTime;
+    }
+
+    /**
+     * @return int
+     */
+    public function getMinTemperature(): int
+    {
+        return $this->minTemperature;
+    }
+
+    /**
+     * @param int $minTemperature
+     */
+    public function setMinTemperature(int $minTemperature): void
+    {
+        $this->minTemperature = $minTemperature;
+    }
+
+    /**
+     * @return int
+     */
+    public function getMaxTemperature(): int
+    {
+        return $this->maxTemperature;
+    }
+
+    /**
+     * @param int $maxTemperature
+     */
+    public function setMaxTemperature(int $maxTemperature): void
+    {
+        $this->maxTemperature = $maxTemperature;
+    }
+
+    /**
+     * @return int
+     */
+    public function getTemperatureChangeTime(): int
+    {
+        return $this->temperatureChangeTime;
+    }
+
+    /**
+     * @param int $temperatureChangeTime
+     */
+    public function setTemperatureChangeTime(int $temperatureChangeTime): void
+    {
+        $this->temperatureChangeTime = $temperatureChangeTime;
+    }
+
+    /**
+     * @return int
+     */
+    public function getChangeValue(): int
+    {
+        return $this->changeValue;
+    }
+
+    /**
+     * @param int $changeValue
+     */
+    public function setChangeValue(int $changeValue): void
+    {
+        $this->changeValue = $changeValue;
+    }
+
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
@@ -82,6 +205,13 @@ class WeatherInfoData implements JsonSerializable
             'weatherCode' => $this->weatherCode,
             'temperature' => $this->temperatureCode,
             'windCode' => $this->windCode,
+            'minWind' => $this->minWind,
+            'maxWind' => $this->maxWind,
+            'windChangeTime' => $this->windChangeTime,
+            'minTemperature' => $this->minTemperature,
+            'maxTemperature' => $this->maxTemperature,
+            'temperatureChangeTime' => $this->temperatureChangeTime,
+            'changeValue' => $this->changeValue,
             'createDate' => $this->createDate,
         ];
     }

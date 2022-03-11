@@ -5,6 +5,9 @@ namespace App\Infrastructure\Persistence\User;
 use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\User\Entity\UserInfo;
+use App\Domain\User\Entity\UserInventoryInfo;
+use App\Domain\User\Entity\UserShipInfo;
+use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
 use App\Infrastructure\Persistence\BaseRepository;
 
@@ -236,5 +239,279 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $statement->execute();
 
         return (int) $this->database->lastInsertId();
+    }
+
+    public function createUserWeather(UserWeatherHistory $userWeatherHistory): int
+    {
+        $query = '
+            INSERT INTO `user_weather_history`
+                (`user_code`, `weather_code`, `temperature`
+                , `wind`,`create_date`)
+            VALUES
+                (:userCode, :weatherCode, :temperature
+                , :wind, NOW())
+            ON DUPLICATE KEY UPDATE 
+                temperature=Values(temperature)
+                ,wind=Values(wind)
+                ,create_date=NOW()
+        ';
+        $statement = $this->database->prepare($query);
+
+        $userCode = $userWeatherHistory->getUserCode();
+        $weatherCode = $userWeatherHistory->getWeatherCode();
+        $temperature = $userWeatherHistory->getTemperature();
+        $wind = $userWeatherHistory->getWind();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':weatherCode', $weatherCode);
+        $statement->bindParam(':temperature', $temperature);
+        $statement->bindParam(':wind', $wind);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function getUserWeatherHistory(UserWeatherHistory $userWeatherHistory): UserWeatherHistory
+    {
+        $query = '
+            SELECT 
+                weather_history_code    AS weatherHistoryCode
+                ,user_code              AS userCode
+                ,weather_code           AS weatherCode
+                ,temperature            AS temperature
+                ,wind                   AS wind
+                ,create_date            AS createDate
+            FROM `user_weather_history`
+            WHERE user_code = :userCode
+            AND date(create_date) = date(NOW())
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $userWeatherHistory->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        if($statement->rowCount() > 0){
+            return $statement->fetchObject(UserWeatherHistory::class);
+        }else{
+            $failHistory = new UserWeatherHistory();
+            $failHistory->setWeatherHistoryCode(0);
+            return $failHistory;
+        }
+    }
+
+    public function createUserInventoryInfo(UserInventoryInfo $inventoryInfo): int
+    {
+        if(!empty($inventoryInfo->getInventoryCode())){
+            $query = '
+                INSERT INTO `user_inventory_info`
+                    (`inventory_code`, `user_code`, `item_code`, `item_type`, `upgrade_code`, `upgrade_level`
+                    , `item_count`, `item_durability`,`create_date`)
+                VALUES
+                    (:inventoryCode, :userCode, :itemCode, :itemType, :upgradCode, :upgradLevel
+                    , :itemCount, :itemDurability, NOW())
+                ON DUPLICATE KEY UPDATE 
+                    upgrade_code=Values(upgrade_code)
+                    ,upgrade_level=Values(upgrade_level)
+                    ,item_count=Values(item_count)
+                    ,item_durability=Values(item_durability)
+            ';
+        }else{
+            $query = '
+                INSERT INTO `user_inventory_info`
+                    (`user_code`, `item_code`, `item_type`, `upgrade_code`, `upgrade_level`
+                    , `item_count`, `item_durability`,`create_date`)
+                VALUES
+                    (:userCode, :itemCode, :itemType, :upgradeCode, :upgradeLevel
+                    , :itemCount, :itemDurability, NOW())
+            ';
+        }
+
+        $statement = $this->database->prepare($query);
+
+        $userCode = $inventoryInfo->getUserCode();
+        $itemCode = $inventoryInfo->getItemCode();
+        $itemType = $inventoryInfo->getItemType();
+        $upgradeCode = $inventoryInfo->getUpgradeCode();
+        $upgradeLevel = $inventoryInfo->getUpgradeLevel();
+        $itemCount = $inventoryInfo->getItemCount();
+        $itemDurability = $inventoryInfo->getItemDurability();
+
+        if(!empty($inventoryInfo->getInventoryCode())){
+            $inventoryCode = $inventoryInfo->getInventoryCode();
+            $statement->bindParam(':inventoryCode', $inventoryCode);
+        }
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->bindParam(':upgradeCode', $upgradeCode);
+        $statement->bindParam(':upgradeLevel', $upgradeLevel);
+        $statement->bindParam(':itemCount', $itemCount);
+        $statement->bindParam(':itemDurability', $itemDurability);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function createUserShipInfo(UserShipInfo $shipInfo): int
+    {
+        $query = '
+            INSERT INTO `user_ship_info`
+                (`user_code`, `ship_code`, `durability`, `fuel`
+                , `upgrade_code`, `upgrade_level`, `create_date`)
+            VALUES
+                (:userCode, :shipCode, :durability, :fuel
+                , :upgradeCode, :upgradeLevel, NOW())
+            ON DUPLICATE KEY UPDATE 
+                durability=Values(durability)
+                ,fuel=Values(fuel)
+                ,upgrade_code=Values(upgrade_code)
+                ,upgrade_level=Values(upgrade_level)
+        ';
+
+        $statement = $this->database->prepare($query);
+
+        $userCode = $shipInfo->getUserCode();
+        $shipCode = $shipInfo->getShipCode();
+        $durability = $shipInfo->getDurability();
+        $fuel = $shipInfo->getFuel();
+        $upgradeCode = $shipInfo->getUpgradeCode();
+        $upgradeLevel = $shipInfo->getUpgradeLevel();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':shipCode', $shipCode);
+        $statement->bindParam(':durability', $durability);
+        $statement->bindParam(':fuel', $fuel);
+        $statement->bindParam(':upgradeCode', $upgradeCode);
+        $statement->bindParam(':upgradeLevel', $upgradeLevel);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function modifyUserWeatherHistory(UserWeatherHistory $userWeatherHistory): int
+    {
+        $query = '
+            UPDATE `user_weather_history` 
+            SET     temperature = :temperature
+                    ,wind       = :wind
+                    ,create_date = NOW()
+            WHERE weather_history_code = :weatherHistoryCode
+        ';
+
+        $statement = $this->database->prepare($query);
+
+        $weatherHistoryCode= $userWeatherHistory->getWeatherHistoryCode();
+        $temperature = $userWeatherHistory->getTemperature();
+        $wind = $userWeatherHistory->getWind();
+
+        $statement->bindParam(':temperature', $temperature);
+        $statement->bindParam(':wind', $wind);
+        $statement->bindParam(':weatherHistoryCode', $weatherHistoryCode);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function getUserShipInfo(UserShipInfo $shipInfo): UserShipInfo
+    {
+        $query = '
+            SELECT 
+                user_code              AS userCode
+                ,ship_code               AS shipCode
+                ,durability             AS durability
+                ,fuel                   AS fuel
+                ,upgrade_code           AS upgradeCode
+                ,upgrade_Level          AS upgradeLevel
+                ,create_date            AS createDate
+            FROM `user_ship_info`
+            WHERE user_code = :userCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $shipInfo->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return $statement->fetchObject(UserShipInfo::class);
+    }
+
+    public function getUserInventoryList(SearchInfo $searchInfo): array
+    {
+        $query = '
+            SELECT 
+                inventory_code          AS inventoryCode
+                ,user_code              AS userCode
+                ,item_code              AS itemCode
+                ,item_type              AS itemType
+                ,upgrade_code           AS upgradCode
+                ,upgrade_level          AS upgradLevel
+                ,item_count             AS itemCount
+                ,item_durability         AS itemDurability
+                ,create_date            AS createDate
+            FROM `user_inventory_info`
+            WHERE user_code = :userCode
+            ORDER BY inventory_code
+            LIMIT :offset , :limit
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $offset = $searchInfo->getOffset();
+        $limit = $searchInfo->getLimit();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':offset', $offset);
+        $statement->bindParam(':limit', $limit);
+        $statement->execute();
+
+        return (array) $statement->fetchAll();
+    }
+
+    public function getUserInventoryListCnt(SearchInfo $searchInfo): int
+    {
+        $query = '
+            SELECT 
+                COUNT(*)    AS count
+            FROM `user_inventory_info`
+            WHERE user_code = :userCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return $statement->fetchColumn();
+    }
+
+    public function getUserInventory(UserInventoryInfo $inventoryInfo): UserInventoryInfo
+    {
+        $query = '
+            SELECT 
+                inventory_code          AS inventoryCode
+                ,user_code              AS userCode
+                ,item_code              AS itemCode
+                ,item_type              AS itemType
+                ,upgrade_code           AS upgradCode
+                ,upgrade_level          AS upgradLevel
+                ,item_count             AS itemCount
+                ,item_durability         AS itemDurability
+                ,create_date            AS createDate
+            FROM `user_inventory_info`
+            WHERE user_code = :userCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $inventoryInfo->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return $statement->fetchObject(UserInventoryInfo::class);
     }
 }

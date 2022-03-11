@@ -7,6 +7,7 @@ use JsonSerializable;
 class SearchInfo implements JsonSerializable
 {
     private int $accountCode;
+    private int $userCode;
     private int $limit;
     private int $offset;
 
@@ -24,6 +25,22 @@ class SearchInfo implements JsonSerializable
     public function setAccountCode(int $accountCode): void
     {
         $this->accountCode = $accountCode;
+    }
+
+    /**
+     * @return int
+     */
+    public function getUserCode(): int
+    {
+        return $this->userCode;
+    }
+
+    /**
+     * @param int $userCode
+     */
+    public function setUserCode(int $userCode): void
+    {
+        $this->userCode = $userCode;
     }
 
     /**
@@ -62,7 +79,12 @@ class SearchInfo implements JsonSerializable
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-        // TODO: Implement jsonSerialize() method.
+        return [
+            'accountCode' => $this->accountCode,
+            'userCode' => $this->userCode,
+            'limit' => $this->limit,
+            'offset' => $this->offset,
+        ];
     }
 
     public function toJson(): object

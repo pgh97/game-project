@@ -8,7 +8,7 @@ class ItemRepairInfoData implements JsonSerializable
 {
     private int $repairCode;
     private int $itemCode;
-    private int $itemType;
+    private int $itemType; //낚시대: 1, 낚시줄: 2, 릴: 3, 낚시배: 4
     private int $moneyCode;
     private int $repairPrice;
     private string $createDate;

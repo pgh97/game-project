@@ -9,7 +9,7 @@ class ShopInfoData implements JsonSerializable
 {
     private int $shopCode;
     private int $itemCode;
-    private int $itemType;
+    private int $itemType;  //낚시대: 1, 낚시줄: 2, 바늘: 3, 미끼: 4, 릴: 5, 업데이트부품: 6, 버프/회복 아이템: 7
     private int $salePercent;
     private int $moneyCode;
     private int $itemPrice;
