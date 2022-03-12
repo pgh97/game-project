@@ -324,6 +324,17 @@ create table account_info (
     unique index(account_id)
 );
 
+create table account_delete_info (
+    account_code int not null primary key,
+    account_type int not null,
+    hive_code int null,
+    account_id varchar(200) not null,
+    country_code int not null,
+    language_code int not null,
+    delete_date timestamp not null DEFAULT CURRENT_TIMESTAMP,
+    unique index(account_id)
+);
+
 create table user_info (
     user_code int not null auto_increment primary key,
     account_code int not null,

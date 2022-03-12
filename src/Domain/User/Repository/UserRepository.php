@@ -94,9 +94,16 @@ interface UserRepository
      * @return int
      */
     public function modifyUserInfo(UserInfo $userInfo): int;
+
     /**
      * @param UserWeatherHistory $userWeatherHistory
      * @return int
      */
     public function modifyUserWeatherHistory(UserWeatherHistory $userWeatherHistory): int;
+
+    /**
+     * @param UserInfo $userInfo
+     * @return int
+     */
+    public function deleteUserInfo(UserInfo $userInfo): int;
 }

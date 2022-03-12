@@ -116,8 +116,12 @@ class UserService extends BaseService
     {
         $data = json_decode((string) json_encode($input), false);
         $myUserInfo = new UserInfo();
+        if(!empty($data->decoded->data->userCode)){
+            $myUserInfo->setUserCode($data->decoded->data->userCode);
+        }else{
+            $myUserInfo->setUserCode($data->userCode);
+        }
         $myUserInfo->setAccountCode($data->decoded->data->accountCode);
-        $myUserInfo->setUserCode($data->decoded->data->userCode);
 
         $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         $this->logger->info("get user service");
@@ -209,7 +213,11 @@ class UserService extends BaseService
         $data = json_decode((string) json_encode($input), false);
         $myUserInfo = new UserInfo();
         $myUserInfo->setAccountCode($data->decoded->data->accountCode);
-        $myUserInfo->setUserCode($data->decoded->data->userCode);
+        if(!empty($data->decoded->data->userCode)){
+            $myUserInfo->setUserCode($data->decoded->data->userCode);
+        }else{
+            $myUserInfo->setUserCode($data->userCode);
+        }
         $myUserInfo->setUserNickNm($data->userNickNm);
         $myUserInfo->setLevelCode($data->levelCode);
         $myUserInfo->setUserExperience($data->userExperience);
@@ -296,6 +304,22 @@ class UserService extends BaseService
         $userInventory = $this->userRepository->getUserInventory($myUserInventory);
         $this->logger->info("get user inventory service");
         return $userInventory;
+    }
+
+    public function removeUserInfo(array $input): int
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myUserInfo = new UserInfo();
+        if(!empty($data->decoded->data->userCode)){
+            $myUserInfo->setUserCode($data->decoded->data->userCode);
+            $this->logger->info($data->decoded->data->userCode."??");
+        }else{
+            $myUserInfo->setUserCode($data->userCode);
+            $this->logger->info($data->userCode);
+        }
+        $resultCode = $this->userRepository->deleteUserInfo($myUserInfo);
+        $this->logger->info("delete user info service");
+        return $resultCode;
     }
 
     protected function saveInCache(int $userCode, object $user, string $redisKey): void

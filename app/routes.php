@@ -25,7 +25,9 @@ return function (App $app) {
         $group->group('/auth', function (Group $auth){
             $auth->post('/signup', Actions\Auth\CreateAuthAction::class);
             $auth->post('/login', Actions\Auth\LoginAuthAction::class);
-            //$auth->post('/remove', );
+            $auth->post('/info', Actions\Auth\GetAuthAction::class)->add(new JWTAuthMiddleware());
+            $auth->post('/info/change', Actions\Auth\ModifyAuthAction::class)->add(new JWTAuthMiddleware());
+            $auth->post('/remove', Actions\Auth\DeleteAuthAction::class)->add(new JWTAuthMiddleware());
         });
 
         $group->group('/user', function (Group $user){
@@ -34,7 +36,7 @@ return function (App $app) {
             $user->post('/info', Actions\User\GetUserAction::class);
             $user->post('/info/change', Actions\User\ModifyUserAction::class);
             //$user->post('/level-up', );
-            //$user->post('/remove', );
+            $user->post('/remove', Actions\User\DeleteUserAction::class);
             $user->post('/choice', Actions\User\ChoiceUserAction::class);
             $user->post('/my-weather', Actions\User\GetWeatherInfoAction::class);
             $user->post('/my-weather/change', Actions\User\ModifyWeatherAction::class);

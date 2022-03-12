@@ -514,4 +514,23 @@ class UserDBRepository extends BaseRepository implements UserRepository
 
         return $statement->fetchObject(UserInventoryInfo::class);
     }
+
+    public function deleteUserInfo(UserInfo $userInfo): int
+    {
+        $query = '
+            DELETE U, UI, US, UW
+            FROM user_info U
+            JOIN user_inventory_info UI ON U.user_code = UI.user_code
+            JOIN user_ship_info US ON U.user_code = US.user_code
+            LEFT JOIN user_weather_history UW ON U.user_code = UW.user_code
+            WHERE U.user_code =:userCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode= $userInfo->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+        return $statement->rowCount();
+    }
 }

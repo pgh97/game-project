@@ -10,14 +10,14 @@ use Slim\Exception\HttpBadRequestException;
 
 class ModifyUserAction extends UserAction
 {
-
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
         $service = new UserService($this->logger, $this->userRepository
             , $this->commonRepository, $this->redisService);
-        $userInfo = $service->modifyUserInfo($input);
+        $payload = array();
+        $payload['userInfo'] = $service->modifyUserInfo($input);
         $this->logger->info("update user Action");
-        return $this->respondWithData($userInfo);
+        return $this->respondWithData($payload);
     }
 }

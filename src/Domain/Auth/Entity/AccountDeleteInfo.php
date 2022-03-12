@@ -5,18 +5,50 @@ namespace App\Domain\Auth\Entity;
 
 use JsonSerializable;
 
-class AccountInfo implements JsonSerializable
+class AccountDeleteInfo implements JsonSerializable
 {
+    private int $deleteCode;
     private int $accountCode;
     private int $accountType;
+    private int $deleteType; // 다시 가입: 1 , 더 이상 사용안함: 2, 기타: 99
     private ?int $hiveCode;
     private string $accountId;
-    private ?string $accountPw = null;
     private int $countryCode;
     private int $languageCode;
-    private string $lastLoginDate;
-    private string $createDate;
+    private string $deleteDate;
     private ?bool $isSuccess = true;
+
+    /**
+     * @return int
+     */
+    public function getDeleteCode(): int
+    {
+        return $this->deleteCode;
+    }
+
+    /**
+     * @param int $deleteCode
+     */
+    public function setDeleteCode(int $deleteCode): void
+    {
+        $this->deleteCode = $deleteCode;
+    }
+
+    /**
+     * @return int
+     */
+    public function getDeleteType(): int
+    {
+        return $this->deleteType;
+    }
+
+    /**
+     * @param int $deleteType
+     */
+    public function setDeleteType(int $deleteType): void
+    {
+        $this->deleteType = $deleteType;
+    }
 
     /**
      * @return int
@@ -83,22 +115,6 @@ class AccountInfo implements JsonSerializable
     }
 
     /**
-     * @return string
-     */
-    public function getAccountPw(): string
-    {
-        return $this->accountPw;
-    }
-
-    /**
-     * @param string $accountPw
-     */
-    public function setAccountPw(string $accountPw): void
-    {
-        $this->accountPw = $accountPw;
-    }
-
-    /**
      * @return int
      */
     public function getCountryCode(): int
@@ -133,33 +149,17 @@ class AccountInfo implements JsonSerializable
     /**
      * @return string
      */
-    public function getLastLoginDate(): string
+    public function getDeleteDate(): string
     {
-        return $this->lastLoginDate;
+        return $this->deleteDate;
     }
 
     /**
-     * @param string $lastLoginDate
+     * @param string $deleteDate
      */
-    public function setLastLoginDate(string $lastLoginDate): void
+    public function setDeleteDate(string $deleteDate): void
     {
-        $this->lastLoginDate = $lastLoginDate;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCreateDate(): string
-    {
-        return $this->createDate;
-    }
-
-    /**
-     * @param string $createDate
-     */
-    public function setCreateDate(string $createDate): void
-    {
-        $this->createDate = $createDate;
+        $this->deleteDate = $deleteDate;
     }
 
     /**
@@ -182,14 +182,12 @@ class AccountInfo implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
+            'deleteCode' => $this->deleteCode,
+            'deleteType' => $this->deleteType,
             'accountCode' => $this->accountCode,
-            'hiveCode' => $this->hiveCode,
             'accountId' => $this->accountId,
             'accountType' => $this->accountType,
-            'countryCode' => $this->countryCode,
-            'languageCode' => $this->languageCode,
-            'createDate' => $this->createDate,
-            'lastLoginDate' => $this->lastLoginDate,
+            'deleteDate' => $this->deleteDate,
         ];
     }
 

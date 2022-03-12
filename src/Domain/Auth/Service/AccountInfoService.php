@@ -2,6 +2,7 @@
 
 namespace App\Domain\Auth\Service;
 
+use App\Domain\Auth\Entity\AccountDeleteInfo;
 use App\Domain\Auth\Entity\AccountInfo;
 use App\Domain\Auth\Repository\AccountInfoRepository;
 use App\Exception\AccountInfoException;
@@ -93,8 +94,54 @@ class AccountInfoService
         }
     }
 
+    public function getAccountInfo(array $input): AccountInfo
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myAccountInfo = new AccountInfo();
+        $myAccountInfo->setAccountCode($data->decoded->data->accountCode);
+
+        $accountInfo = $this->accountInfoRepository->getAccountInfo($myAccountInfo);
+        $this->logger->info("delete account info service");
+        return $accountInfo;
+    }
+
     public function modifyAccountInfo(array $input): AccountInfo
     {
-        return 0;
+        $data = json_decode((string) json_encode($input), false);
+        $myAccountInfo = new AccountInfo();
+        $myAccountInfo->setAccountCode($data->decoded->data->accountCode);
+
+        if(!empty($data->accountPw)){
+            $myAccountInfo->setAccountPw(hash('sha256', $data->accountPw));
+        }
+        if(!empty($data->languageCode)){
+            $myAccountInfo->setLanguageCode($data->languageCode);
+        }
+        if(!empty($data->countryCode)){
+            $myAccountInfo->setCountryCode($data->countryCode);
+        }
+
+        $this->accountInfoRepository->modifyAccountInfo($myAccountInfo);
+        $accountInfo = $this->accountInfoRepository->getAccountInfo($myAccountInfo);
+        $this->logger->info("update account service");
+        return $accountInfo;
+    }
+
+    public function removeAccountInfo(array $input): int
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myAccountInfo = new AccountInfo();
+        $myAccountInfo->setAccountCode($data->decoded->data->accountCode);
+
+        $myAccountDeleteInfo = new AccountDeleteInfo();
+        $myAccountDeleteInfo->setAccountCode($data->decoded->data->accountCode);
+        $myAccountDeleteInfo->setDeleteType($data->deleteType);
+
+        $resultCode = $this->accountInfoRepository->createAccountDeleteInfo($myAccountDeleteInfo);
+        if($resultCode > 0){
+            $this->accountInfoRepository->deleteAccountInfo($myAccountInfo);
+        }
+        $this->logger->info("delete Account info service");
+        return $resultCode;
     }
 }
