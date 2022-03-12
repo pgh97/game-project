@@ -4,6 +4,7 @@ namespace App\Domain\User\Repository;
 
 use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\SearchInfo;
+use App\Domain\User\Entity\UserChoiceItemInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
@@ -28,6 +29,12 @@ interface UserRepository
      * @return int
      */
     public function createUserInventoryInfo(UserInventoryInfo $inventoryInfo): int;
+
+    /**
+     * @param UserChoiceItemInfo $choiceItemInfo
+     * @return int
+     */
+    public function createUserFishingItem(UserChoiceItemInfo $choiceItemInfo): int;
 
     /**
      * @param UserShipInfo $shipInfo
@@ -90,6 +97,18 @@ interface UserRepository
     public function getUserInventory(UserInventoryInfo $inventoryInfo): UserInventoryInfo;
 
     /**
+     * @param SearchInfo $searchInfo
+     * @return array
+     */
+    public function getUserFishingItemList(SearchInfo $searchInfo): array;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function getUserFishingItemListCnt(SearchInfo $searchInfo): int;
+
+    /**
      * @param UserInfo $userInfo
      * @return int
      */
@@ -106,4 +125,10 @@ interface UserRepository
      * @return int
      */
     public function deleteUserInfo(UserInfo $userInfo): int;
+
+    /**
+     * @param UserInventoryInfo $inventoryInfo
+     * @return int
+     */
+    public function deleteUserInventory(UserInventoryInfo $inventoryInfo): int;
 }

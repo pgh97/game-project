@@ -4,6 +4,7 @@ namespace App\Infrastructure\Persistence\User;
 
 use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\SearchInfo;
+use App\Domain\User\Entity\UserChoiceItemInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
@@ -532,5 +533,112 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $statement->bindParam(':userCode', $userCode);
         $statement->execute();
         return $statement->rowCount();
+    }
+
+    public function deleteUserInventory(UserInventoryInfo $inventoryInfo): int
+    {
+        $query = '
+            DELETE 
+            FROM `user_inventory_info`
+            WHERE inventory_code =:inventoryCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $inventoryCode= $inventoryInfo->getInventoryCode();
+
+        $statement->bindParam(':inventoryCode', $inventoryCode);
+        $statement->execute();
+        return $statement->rowCount();
+    }
+
+    public function createUserFishingItem(UserChoiceItemInfo $choiceItemInfo): int
+    {
+        if(!empty($choiceItemInfo->getChoiceCode())){
+            $query = '
+            INSERT INTO `user_choice_item_info`
+                (`choice_code`, `user_code`, `fishing_rod_code`, `fishing_line_code`
+                , `fishing_needle_code`,`fishing_bait_code`, `fishing_reel_code`, `fishing_item_code1`
+                , `fishing_item_code2`, `fishing_item_code3`, `fishing_item_code4`, `create_date`)
+            VALUES
+                (:choiceCode, :userCode, :fishingRodCode, :fishingLineCode
+                , :fishingNeedleCode, :fishingBaitCode, :fishingReelCode, :fishingItemCode1
+                , :fishingItemCode2, :fishingItemCode3, :fishingItemCode4, NOW())
+            ON DUPLICATE KEY UPDATE 
+                fishing_rod_code=Values(fishing_rod_code)
+                ,fishing_line_code=Values(fishing_line_code)
+                ,fishing_needle_code=Values(fishing_needle_code)
+                ,fishing_bait_code=Values(fishing_bait_code)
+                ,fishing_reel_code=Values(fishing_reel_code)
+                ,fishing_item_code1=Values(fishing_item_code1)
+                ,fishing_item_code2=Values(fishing_item_code2)
+                ,fishing_item_code3=Values(fishing_item_code3)
+                ,fishing_item_code4=Values(fishing_item_code4)
+        ';
+        }else{
+            $query = '
+            INSERT INTO `user_choice_item_info`
+                (`user_code`, `fishing_rod_code`, `fishing_line_code`
+                , `fishing_needle_code`,`fishing_bait_code`, `fishing_reel_code`, `fishing_item_code1`
+                , `fishing_item_code2`, `fishing_item_code3`, `fishing_item_code4`, `create_date`)
+            VALUES
+                (:userCode, :fishingRodCode, :fishingLineCode
+                , :fishingNeedleCode, :fishingBaitCode, :fishingReelCode, :fishingItemCode1
+                , :fishingItemCode2, :fishingItemCode3, :fishingItemCode4, NOW())
+        ';
+        }
+
+        $statement = $this->database->prepare($query);
+        $userCode = $choiceItemInfo->getUserCode();
+        $fishingRodCode = $choiceItemInfo->getFishingRodCode();
+        $fishingLineCode = $choiceItemInfo->getFishingLineCode();
+        $fishingNeedleCode = $choiceItemInfo->getFishingNeedleCode();
+        $fishingBaitCode = $choiceItemInfo->getFishingBaitCode();
+        $fishingReelCode = $choiceItemInfo->getFishingReelCode();
+        $fishingItemCode1 = $choiceItemInfo->getFishingItemCode1();
+        $fishingItemCode2 = $choiceItemInfo->getFishingItemCode2();
+        $fishingItemCode3 = $choiceItemInfo->getFishingItemCode3();
+        $fishingItemCode4 = $choiceItemInfo->getFishingItemCode4();
+
+        if(!empty($choiceItemInfo->getChoiceCode())){
+            $choiceCode = $choiceItemInfo->getAccountCode();
+            $statement->bindParam(':choiceCode', $choiceCode);
+        }
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':fishingRodCode', $fishingRodCode);
+        $statement->bindParam(':fishingLineCode', $fishingLineCode);
+        $statement->bindParam(':fishingNeedleCode', $fishingNeedleCode);
+        $statement->bindParam(':fishingBaitCode', $fishingBaitCode);
+        $statement->bindParam(':fishingReelCode', $fishingReelCode);
+        $statement->bindParam(':fishingItemCode1', $fishingItemCode1);
+        $statement->bindParam(':fishingItemCode2', $fishingItemCode2);
+        $statement->bindParam(':fishingItemCode3', $fishingItemCode3);
+        $statement->bindParam(':fishingItemCode4', $fishingItemCode4);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function getUserFishingItemList(SearchInfo $searchInfo): array
+    {
+        return [];
+    }
+
+    public function getUserFishingItemListCnt(SearchInfo $searchInfo): int
+    {
+        $query = '
+            SELECT 
+                COUNT(*)    AS count
+            FROM `user_choice_item_info`
+            WHERE user_code = :userCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return $statement->fetchColumn();
     }
 }

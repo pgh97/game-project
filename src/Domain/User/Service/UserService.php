@@ -9,6 +9,7 @@ use App\Domain\Common\Entity\Weather\WeatherInfoData;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\User\Entity\UserChoiceItemInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
@@ -110,6 +111,38 @@ class UserService extends BaseService
             $this->logger->info("create user service");
         }
         return $userCode;
+    }
+
+    public function createUserFishingItem(array $input): int
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myChoiceItem = new UserChoiceItemInfo();
+        $myChoiceItem->setUserCode($data->decoded->data->userCode);
+        $myChoiceItem->setFishingRodCode($data->fishingRodCode);
+        $myChoiceItem->setFishingLineCode($data->fishingLineCode);
+        $myChoiceItem->setFishingNeedleCode($data->fishingNeedleCode);
+        $myChoiceItem->setFishingBaitCode($data->fishingBaitCode);
+        $myChoiceItem->setFishingReelCode($data->fishingReelCode);
+        $myChoiceItem->setFishingItemCode1($data->fishingItemCode1);
+        $myChoiceItem->setFishingItemCode2($data->fishingItemCode2);
+        $myChoiceItem->setFishingItemCode3($data->fishingItemCode3);
+        $myChoiceItem->setFishingItemCode4($data->fishingItemCode4);
+
+        $myUserInfo = new UserInfo();
+        $myUserInfo->setUserCode($data->decoded->data->userCode);
+        $userinfo = $this->userRepository->getUserInfo($myUserInfo);
+
+        $search = new SearchInfo();
+        $search->setUserCode($data->decoded->data->userCode);
+        $totalCount = $this->userRepository->getUserFishingItemListCnt($search);
+        if($userinfo->getUseSaveItemCount() > $totalCount){
+            $choiceCode = $this->userRepository->createUserFishingItem($myChoiceItem);
+            $this->logger->info("create user fishing-item Service");
+        }else{
+            $choiceCode = 0;
+            $this->logger->info("count fail create user fishing-item Service");
+        }
+        return $choiceCode;
     }
 
     public function getUserInfo(array $input): object
@@ -312,13 +345,26 @@ class UserService extends BaseService
         $myUserInfo = new UserInfo();
         if(!empty($data->decoded->data->userCode)){
             $myUserInfo->setUserCode($data->decoded->data->userCode);
-            $this->logger->info($data->decoded->data->userCode."??");
         }else{
             $myUserInfo->setUserCode($data->userCode);
-            $this->logger->info($data->userCode);
         }
         $resultCode = $this->userRepository->deleteUserInfo($myUserInfo);
         $this->logger->info("delete user info service");
+        return $resultCode;
+    }
+
+    public function removeUserInventory(array $input): int
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myUserInventory = new UserInventoryInfo();
+        if(!empty($data->decoded->data->userCode)){
+            $myUserInventory->setUserCode($data->decoded->data->userCode);
+        }else{
+            $myUserInventory->setUserCode($data->userCode);
+        }
+        $myUserInventory->setInventoryCode($data->inventoryCode);
+        $resultCode = $this->userRepository->deleteUserInventory($myUserInventory);
+        $this->logger->info("delete user inventory service");
         return $resultCode;
     }
 

@@ -6,7 +6,7 @@ use JsonSerializable;
 
 class UserChoiceItemInfo implements JsonSerializable
 {
-    private int $choiceCode;
+    private int $choiceCode=0;
     private int $userCode;
     private int $fishingRodCode;
     private int $fishingLineCode;

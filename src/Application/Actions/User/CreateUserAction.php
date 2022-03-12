@@ -16,8 +16,9 @@ class CreateUserAction extends UserAction
         $input = (array) $request->getParsedBody();
         $service = new UserService($this->logger, $this->userRepository
             , $this->commonRepository, $this->redisService);
-        $userCode = $service->createUserInfo($input);
+        $payload = array();
+        $payload['userCode'] = $service->createUserInfo($input);
         $this->logger->info("create user info Action");
-        return $this->respondWithData($userCode);
+        return $this->respondWithData($payload);
     }
 }

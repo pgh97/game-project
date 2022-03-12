@@ -44,10 +44,11 @@ return function (App $app) {
             //$user->post('/fish-dictionary', );
             $user->post('/inventory-items', Actions\User\GetUserInventoryListAction::class);
             $user->post('/inventory-item', Actions\User\GetUserInventoryAction::class);
-            //$user->post('/inventory-item/change', );
-            //$user->post('/inventory-item/remove', );
+            //$user->post('/inventory-item/change', Actions\User\ModifyUserInventoryAction::class);
+            $user->post('/inventory-item/remove', Actions\User\DeleteUserInventoryAction::class);
             //$user->post('/fishing-items', );
             //$user->post('/fishing-item', );
+            $user->post('/fishing-item/change', Actions\User\CreateUserFishingItemAction::class);
             //$user->post('/fishing-item/change', );
             //$user->post('/fishing-item/remove', );
             //$user->post('/gift-boxs', );
