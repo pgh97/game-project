@@ -9,7 +9,6 @@ class MapInfoData implements JsonSerializable
     private int $mapCode;
     private string $mapName;
     private int $maxDepth;
-    private int $minDepth;
     private int $minLevel;
     private int $distance;
     private int $moneyCode;
@@ -66,22 +65,6 @@ class MapInfoData implements JsonSerializable
     public function setMaxDepth(int $maxDepth): void
     {
         $this->maxDepth = $maxDepth;
-    }
-
-    /**
-     * @return int
-     */
-    public function getMinDepth(): int
-    {
-        return $this->minDepth;
-    }
-
-    /**
-     * @param int $minDepth
-     */
-    public function setMinDepth(int $minDepth): void
-    {
-        $this->minDepth = $minDepth;
     }
 
     /**
@@ -235,7 +218,6 @@ class MapInfoData implements JsonSerializable
             'mapCode' => $this->mapCode,
             'mapName' => $this->mapName,
             'maxDepth' => $this->maxDepth,
-            'minDepth' => $this->minDepth,
             'minLevel' => $this->minLevel,
             'distance' => $this->distance,
             'moneyCode' => $this->moneyCode,

@@ -15,7 +15,6 @@ use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
-use Couchbase\User;
 use Psr\Log\LoggerInterface;
 use Firebase\JWT\JWT;
 
@@ -27,7 +26,7 @@ class UserService extends BaseService
     protected RedisService $redisService;
 
     private const USER_REDIS_KEY = 'user:%s';
-    private const WEATHER_REDIS_KEY = 'user:%s';
+    private const WEATHER_REDIS_KEY = 'weather:%s';
 
     public function __construct(LoggerInterface $logger
         , UserRepository                        $userRepository

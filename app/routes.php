@@ -57,11 +57,12 @@ return function (App $app) {
         })->add(new JWTAuthMiddleware());
 
         $group->group('/map', function (Group $map){
-            //$map->post('/areas', );
-            //$map->post('/area/{mapCode}', );
-            //$map->post('/leve-port', );
-            //$map->post('/enter-port', );
-        })->add(new JWTAuthMiddleware());
+            $map->post('/areas', Actions\Map\GetMapListAction::class);
+            $map->post('/area', Actions\Map\GetMapAction::class);
+            //$map->post('/leve-port', )->add(new JWTAuthMiddleware());
+            //$map->post('/enter-port', )->add(new JWTAuthMiddleware());
+            //$map->post('/ship-durability', )->add(new JWTAuthMiddleware());
+        });
 
         $group->group('/fishing', function (Group $fishing){
             //$fishing->post('/operate', );
