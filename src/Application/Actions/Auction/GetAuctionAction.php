@@ -16,6 +16,8 @@ class GetAuctionAction extends AuctionAction
         $service = new AuctionService($this->logger, $this->auctionRepository
             ,$this->commonRepository, $this->redisService);
         $payload = array();
+        $payload['auctionInfo'] = $service->getAuctionInfo($input);
+        $this->logger->info("get auction info Action");
         return $this->respondWithData($payload);
     }
 }

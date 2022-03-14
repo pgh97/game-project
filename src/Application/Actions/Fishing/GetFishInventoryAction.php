@@ -16,6 +16,8 @@ class GetFishInventoryAction extends FishingAction
         $service = new FishingService($this->logger, $this->fishingRepository
             ,$this->commonRepository, $this->redisService);
         $payload = array();
+        $payload['userFishInventory'] = $service->getFishInventory($input);
+        $this->logger->info("get fish inventory info Action");
         return $this->respondWithData($payload);
     }
 }

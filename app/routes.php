@@ -66,13 +66,13 @@ return function (App $app) {
 
         $group->group('/fishing', function (Group $fishing){
             $fishing->post('/operate', Actions\Fishing\FishingOperateAction::class);
-            //$fishing->post('/inventorys', );
-            //$fishing->post('/inventory', );
+            $fishing->post('/inventorys', Actions\Fishing\GetFishInventoryListAction::class);
+            //$fishing->post('/inventory', Actions\Fishing\GetFishInventoryAction::class);
         })->add(new JWTAuthMiddleware());
 
         $group->group('/auction', function (Group $auction){
-            //$auction->post('/items', );
-            //$auction->post('/item', );
+            $auction->post('/items', Actions\Auction\GetAuctionListAction::class);
+            //$auction->post('/item', Actions\Auction\GetAuctionAction::class);
             //$auction->post('/user-item/sell', );
             //$auction->post('/ranking', );
         })->add(new JWTAuthMiddleware());
@@ -90,16 +90,16 @@ return function (App $app) {
         })->add(new JWTAuthMiddleware());
 
         $group->group('/quest', function (Group $quest){
-            //$quest->post('/items', );
-            //$quest->post('/item', );
+            $quest->post('/items', Actions\Quest\GetQuestListAction::class);
+            $quest->post('/item', Actions\Quest\GetQuestAction::class);
             //$quest->post('/compensation', );
         })->add(new JWTAuthMiddleware());
 
         $group->group('/shop', function (Group $shop){
-            //$shop->post('/items', );
-            //$shop->post('/item/{shop_code}', );
-            //$shop->post('/item/buy', );
-            //$shop->post('/user-item/sell', );
-        })->add(new JWTAuthMiddleware());
+            $shop->post('/items', Actions\Shop\GetShopListAction::class);
+            $shop->post('/item', Actions\Shop\GetShopAction::class);
+            //$shop->post('/item/buy', )->add(new JWTAuthMiddleware());
+            //$shop->post('/user-item/sell', )->add(new JWTAuthMiddleware());
+        });
     });
 };

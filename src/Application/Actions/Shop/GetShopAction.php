@@ -16,6 +16,8 @@ class GetShopAction extends ShopAction
         $service = new ShopService($this->logger, $this->shopRepository
             ,$this->commonRepository, $this->redisService);
         $payload = array();
+        $payload['shopInfo'] = $service->getShopInfo($input);
+        $this->logger->info("get shop info Action");
         return $this->respondWithData($payload);
     }
 }

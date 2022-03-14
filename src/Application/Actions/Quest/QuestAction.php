@@ -13,6 +13,7 @@ abstract class QuestAction extends Action
     protected QuestRepository $questRepository;
     protected CommonRepository $commonRepository;
     protected RedisService $redisService;
+
     public function __construct(LoggerInterface $logger
         ,QuestRepository $questRepository
         ,CommonRepository $commonRepository
