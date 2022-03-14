@@ -11,7 +11,9 @@ class UserWeatherHistory implements JsonSerializable
     private int $weatherCode;
     private int $temperature;
     private int $wind;
+    private int $mapCode=0;
     private string $createDate;
+    private string $updateDate='';
 
     /**
      * @return int
@@ -109,6 +111,38 @@ class UserWeatherHistory implements JsonSerializable
         $this->createDate = $createDate;
     }
 
+    /**
+     * @return int
+     */
+    public function getMapCode(): int
+    {
+        return $this->mapCode;
+    }
+
+    /**
+     * @param int $mapCode
+     */
+    public function setMapCode(int $mapCode): void
+    {
+        $this->mapCode = $mapCode;
+    }
+
+    /**
+     * @return string
+     */
+    public function getUpdateDate(): string
+    {
+        return $this->updateDate;
+    }
+
+    /**
+     * @param string $updateDate
+     */
+    public function setUpdateDate(string $updateDate): void
+    {
+        $this->updateDate = $updateDate;
+    }
+
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
@@ -118,7 +152,9 @@ class UserWeatherHistory implements JsonSerializable
             'weatherCode' => $this->weatherCode,
             'temperature' => $this->temperature,
             'wind' => $this->wind,
+            'mapCode' => $this->mapCode,
             'createDate' => $this->createDate,
+            'updateDate' => $this->updateDate,
         ];
     }
 }

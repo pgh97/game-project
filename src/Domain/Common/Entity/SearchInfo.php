@@ -8,8 +8,9 @@ class SearchInfo implements JsonSerializable
 {
     private int $accountCode;
     private int $userCode;
-    private int $limit;
-    private int $offset;
+    private int $sort;
+    private int $limit=10;
+    private int $offset=0;
 
     /**
      * @return int
@@ -75,6 +76,21 @@ class SearchInfo implements JsonSerializable
         $this->offset = $offset;
     }
 
+    /**
+     * @return int
+     */
+    public function getSort(): int
+    {
+        return $this->sort;
+    }
+
+    /**
+     * @param int $sort
+     */
+    public function setSort(int $sort): void
+    {
+        $this->sort = $sort;
+    }
 
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
@@ -84,6 +100,7 @@ class SearchInfo implements JsonSerializable
             'userCode' => $this->userCode,
             'limit' => $this->limit,
             'offset' => $this->offset,
+            'sort' => $this->sort,
         ];
     }
 

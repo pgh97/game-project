@@ -121,6 +121,12 @@ interface UserRepository
     public function modifyUserWeatherHistory(UserWeatherHistory $userWeatherHistory): int;
 
     /**
+     * @param UserShipInfo $userShipInfo
+     * @return int
+     */
+    public function modifyUserShip(UserShipInfo $userShipInfo): int;
+
+    /**
      * @param UserInfo $userInfo
      * @return int
      */

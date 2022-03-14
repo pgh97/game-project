@@ -173,45 +173,42 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $fatigue = $userInfo->getFatigue();
 
         $queryFront = 'UPDATE `user_info` SET ';
-        $queryBody = '';
-        $queryEnd = ',update_date = NOW() WHERE user_code = :userCode';
+        $queryBody = 'update_date = NOW() ';
+        $queryEnd = 'WHERE user_code = :userCode';
 
         if(!empty($userNickNm)){
-            $queryBody .= 'user_nicknm = :userNickNm ';
+            $queryBody .= ',user_nicknm = :userNickNm ';
         }
         if(!empty($levelCode)){
-            if(empty($queryBody)){
-                $queryBody .= 'level_code = :levelCode ';
-            }else{
-                $queryBody .= ',level_code = :levelCode ';
-            }
+            $queryBody .= ',level_code = :levelCode ';
         }
         if(!empty($userExperience)){
-            if(empty($queryBody)){
-                $queryBody .= 'user_experience = :userExperience ';
-            }else{
-                $queryBody .= ',user_experience = :userExperience ';
+            $queryBody .= ',user_experience = :userExperience ';
+        }else{
+            if($userExperience == 0){
+                $queryBody .= ',user_experience = 0 ';
             }
         }
         if(!empty($moneyGold)){
-            if(empty($queryBody)){
-                $queryBody .= 'money_gold = :moneyGold ';
-            }else{
-                $queryBody .= ',money_gold = :moneyGold ';
+            $queryBody .= ',money_gold = :moneyGold ';
+        }else{
+            if($moneyGold == 0){
+                $queryBody .= ',money_gold = 0 ';
             }
         }
         if(!empty($moneyPearl)){
-            if(empty($queryBody)){
-                $queryBody .= 'money_pearl = :moneyPearl ';
-            }else{
-                $queryBody .= ',money_pearl = :moneyPearl ';
+            $queryBody .= ',money_pearl = :moneyPearl ';
+
+        }else{
+            if($moneyPearl == 0){
+                $queryBody .= ',money_pearl = 0 ';
             }
         }
         if(!empty($fatigue)){
-            if(empty($queryBody)){
-                $queryBody .= 'fatigue = :fatigue ';
-            }else{
-                $queryBody .= ',fatigue = :fatigue ';
+            $queryBody .= ',fatigue = :fatigue ';
+        }else{
+            if($fatigue == 0){
+                $queryBody .= ',fatigue = 0 ';
             }
         }
 
@@ -236,6 +233,7 @@ class UserDBRepository extends BaseRepository implements UserRepository
         if(!empty($fatigue)){
             $statement->bindParam(':fatigue', $fatigue);
         }
+
         $statement->bindParam(':userCode', $userCode);
         $statement->execute();
 
@@ -247,15 +245,21 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $query = '
             INSERT INTO `user_weather_history`
                 (`user_code`, `weather_code`, `temperature`
-                , `wind`,`create_date`)
+                , `wind`, `map_code`,`create_date`, `update_date`)
             VALUES
                 (:userCode, :weatherCode, :temperature
-                , :wind, NOW())
+                , :wind, :mapCode, NOW(), NULL)
             ON DUPLICATE KEY UPDATE 
                 temperature=Values(temperature)
                 ,wind=Values(wind)
-                ,create_date=NOW()
+                ,map_code=Values(map_code) 
         ';
+        if(!empty($userWeatherHistory->getMapCode())){
+            $query .=',update_date=NOW() ';
+        }else{
+            $query .=',create_date=NOW() ';
+        }
+
         $statement = $this->database->prepare($query);
 
         $userCode = $userWeatherHistory->getUserCode();
@@ -263,10 +267,17 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $temperature = $userWeatherHistory->getTemperature();
         $wind = $userWeatherHistory->getWind();
 
+        if(!empty($userWeatherHistory->getMapCode())){
+            $mapCode = $userWeatherHistory->getMapCode();
+        }else{
+            $mapCode = 0;
+        }
+
         $statement->bindParam(':userCode', $userCode);
         $statement->bindParam(':weatherCode', $weatherCode);
         $statement->bindParam(':temperature', $temperature);
         $statement->bindParam(':wind', $wind);
+        $statement->bindParam(':mapCode', $mapCode);
         $statement->execute();
 
         return (int) $this->database->lastInsertId();
@@ -276,12 +287,14 @@ class UserDBRepository extends BaseRepository implements UserRepository
     {
         $query = '
             SELECT 
-                weather_history_code    AS weatherHistoryCode
-                ,user_code              AS userCode
-                ,weather_code           AS weatherCode
-                ,temperature            AS temperature
-                ,wind                   AS wind
-                ,create_date            AS createDate
+                weather_history_code                        AS weatherHistoryCode
+                ,user_code                                  AS userCode
+                ,weather_code                               AS weatherCode
+                ,temperature                                AS temperature
+                ,wind                                       AS wind
+                ,IF(map_code IS NULL, 0, map_code)          AS mapCode
+                ,create_date                                AS createDate
+                ,IF(update_date IS NULL, "", update_date)   AS updateDate
             FROM `user_weather_history`
             WHERE user_code = :userCode
             AND date(create_date) = date(NOW())
@@ -640,5 +653,58 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $statement->execute();
 
         return $statement->fetchColumn();
+    }
+
+    public function modifyUserShip(UserShipInfo $userShipInfo): int
+    {
+        $userCode = $userShipInfo->getUserCode();
+        $durability = $userShipInfo->getDurability();
+        $fuel = $userShipInfo->getFuel();
+
+        $queryFront = 'UPDATE `user_ship_info` SET ';
+        $queryBody = '';
+        $queryEnd = 'WHERE user_code = :userCode';
+
+        if(!empty($durability)){
+            if(empty($queryBody)){
+                $queryBody .= 'durability = :durability ';
+            }else{
+                $queryBody .= ',durability = :durability ';
+            }
+        }else{
+            if($durability == 0){
+                if(empty($queryBody)){
+                    $queryBody .= 'durability = 0 ';
+                }else{
+                    $queryBody .= ',durability = 0 ';
+                }
+            }
+        }
+        if(!empty($fuel)){
+            if(empty($queryBody)){
+                $queryBody .= 'fuel = :fuel ';
+            }else{
+                $queryBody .= ',fuel = :fuel ';
+            }
+        }else{
+            if($fuel ==  0){
+
+            }
+        }
+
+        $query = $queryFront.$queryBody.$queryEnd;
+        $statement = $this->database->prepare($query);
+
+        if(!empty($durability)){
+            $statement->bindParam(':durability', $durability);
+        }
+        if(!empty($fuel)){
+            $statement->bindParam(':fuel', $fuel);
+        }
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
     }
 }

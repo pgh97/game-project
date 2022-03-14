@@ -13,7 +13,7 @@ class GetMapListAction extends MapAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new MapService($this->logger, $this->mapRepository
+        $service = new MapService($this->logger, $this->mapRepository, $this->userRepository
                 ,$this->commonRepository, $this->redisService);
         $payload = $service->getMapInfoList($input);
         $this->logger->info("map info list service");

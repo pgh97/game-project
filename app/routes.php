@@ -59,13 +59,13 @@ return function (App $app) {
         $group->group('/map', function (Group $map){
             $map->post('/areas', Actions\Map\GetMapListAction::class);
             $map->post('/area', Actions\Map\GetMapAction::class);
-            //$map->post('/leve-port', )->add(new JWTAuthMiddleware());
-            //$map->post('/enter-port', )->add(new JWTAuthMiddleware());
-            //$map->post('/ship-durability', )->add(new JWTAuthMiddleware());
+            $map->post('/leve-port', Actions\Map\MapLevePortAction::class)->add(new JWTAuthMiddleware());
+            //$map->post('/enter-port', Actions\Map\MapEnterPortAction::class)->add(new JWTAuthMiddleware());
+            $map->post('/ship-durability', Actions\Map\ModifyShipAction::class)->add(new JWTAuthMiddleware());
         });
 
         $group->group('/fishing', function (Group $fishing){
-            //$fishing->post('/operate', );
+            $fishing->post('/operate', Actions\Fishing\FishingOperateAction::class);
             //$fishing->post('/inventorys', );
             //$fishing->post('/inventory', );
         })->add(new JWTAuthMiddleware());
