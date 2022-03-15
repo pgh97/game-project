@@ -114,6 +114,9 @@ class MapService extends BaseService
             $weatherInfo->setMapCode($mapInfo->getMapCode());
             $this->userRepository->createUserWeather($weatherInfo);
             if (self::isRedisEnabled() === true) {
+                $myWeatherInfo = new UserWeatherHistory();
+                $myWeatherInfo->setUserCode($data->decoded->data->userCode);
+                $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
                 $this->saveInCache($data->decoded->data->weatherHistoryCode, $weatherInfo, self::WEATHER_REDIS_KEY);
             }
             return [
@@ -136,15 +139,16 @@ class MapService extends BaseService
 
         if(self::isRedisEnabled() === true){
             $mapInfo = $this->getOneMapCache($data->mapCode, self::MAP_REDIS_KEY);
+            $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, self::WEATHER_REDIS_KEY);
         }else{
             $myMapInfo = new MapInfoData();
             $myMapInfo->setMapCode($data->mapCode);
             $mapInfo = $this->mapRepository->getMapInfo($myMapInfo);
-        }
 
-        $myWeatherInfo = new UserWeatherHistory();
-        $myWeatherInfo->setUserCode($data->decoded->data->userCode);
-        $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+            $myWeatherInfo = new UserWeatherHistory();
+            $myWeatherInfo->setUserCode($data->decoded->data->userCode);
+            $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+        }
 
         date_default_timezone_set('Asia/Seoul');
         $currentTime = date("Y-m-d H:i:s");
@@ -156,15 +160,19 @@ class MapService extends BaseService
             $shipInfo->setDurability($shipInfo->getDurability() - ($perMinute * $mapInfo->getPerDurability()));
             $this->userRepository->modifyUserShip($shipInfo);
 
-            $myWeatherInfo = new UserWeatherHistory();
-            $myWeatherInfo->setUserCode($data->decoded->data->userCode);
-            $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
             $weatherInfo->setMapCode($mapInfo->getMapCode());
             $this->userRepository->createUserWeather($weatherInfo);
 
+            if (self::isRedisEnabled() === true) {
+                $myWeatherInfo = new UserWeatherHistory();
+                $myWeatherInfo->setUserCode($data->decoded->data->userCode);
+                $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+                $this->saveInCache($data->decoded->data->weatherHistoryCode, $weatherInfo, self::WEATHER_REDIS_KEY);
+            }
+
             return $this->userRepository->getUserShipInfo($myShipInfo);
         }else{
-            return new UserShipInfo();
+            return $shipInfo;
         }
     }
 
@@ -260,6 +268,7 @@ class MapService extends BaseService
         $key = $this->redisService->generateKey($redisKey);
         if ($this->redisService->exists($key)) {
             $model = json_decode((string)json_encode($this->redisService->get($key)), false);
+
             $weatherInfo = new UserWeatherHistory();
             $weatherInfo->setWeatherHistoryCode($model->weatherHistoryCode);
             $weatherInfo->setUserCode($model->userCode);
