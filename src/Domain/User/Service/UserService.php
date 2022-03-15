@@ -197,6 +197,12 @@ class UserService extends BaseService
             }
             //회원별 날씨 정보 등록, 수정
             $weatherHistoryCode = $this->userRepository->createUserWeather($weatherHistoryInfo);
+            if (self::isRedisEnabled() === true) {
+                $weatherHistory->setUserCode($userInfo->getUserCode());
+                $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($weatherHistory);
+                $this->saveInCache($weatherHistoryCode, $weatherHistoryInfo, self::WEATHER_REDIS_KEY);
+            }
+
             $token = [
                 'iss' => "http://localhost:8888",
                 'iat' => time(),
@@ -266,11 +272,20 @@ class UserService extends BaseService
     public function modifyUserWeatherInfo(array $input): UserWeatherHistory
     {
         $data = json_decode((string) json_encode($input), false);
-        $myWeatherInfo = new UserWeatherHistory();
+        /*$myWeatherInfo = new UserWeatherHistory();
         $myWeatherInfo->setWeatherHistoryCode($data->decoded->data->weatherHistoryCode);
         $myWeatherInfo->setUserCode($data->decoded->data->userCode);
         //캐릭터별 날씨 정보
-        $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+        $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);*/
+
+        if(self::isRedisEnabled()==true){
+            $weatherHistoryInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, self::WEATHER_REDIS_KEY);
+        }else{
+            $myWeatherInfo = new UserWeatherHistory();
+            $myWeatherInfo->setWeatherHistoryCode($data->decoded->data->weatherHistoryCode);
+            $myWeatherInfo->setUserCode($data->decoded->data->userCode);
+            $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+        }
 
         //날씨 정보
         $weatherCode = new WeatherInfoData();
@@ -279,7 +294,12 @@ class UserService extends BaseService
 
         $weatherHistoryInfo = $this->weatherChange($weatherInfo, $weatherHistoryInfo);
         $this->userRepository->modifyUserWeatherHistory($weatherHistoryInfo);
-        $result = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+        $result = $this->userRepository->getUserWeatherHistory($weatherHistoryInfo);
+
+        if(self::isRedisEnabled()==true){
+            $this->saveInCache($data->decoded->data->weatherHistoryCode, $result, self::WEATHER_REDIS_KEY);
+        }
+
         $this->logger->info("update user weather service");
         return $result;
     }
@@ -387,15 +407,19 @@ class UserService extends BaseService
     {
         date_default_timezone_set('Asia/Seoul');
         $currentTime = date("Y-m-d H:i:s");
-        $timeDif = strtotime($currentTime) - strtotime($userWeatherHistory->getCreateDate());
+        $windTimeDif = strtotime($currentTime) - strtotime($userWeatherHistory->getWindUpdateDate());
+        $temperatureTimeDif = strtotime($currentTime) - strtotime($userWeatherHistory->getTemperatureUpdateDate());
         $temperature = $userWeatherHistory->getTemperature();
 
         //풍량 랜덤 갱신
-        if(ceil($timeDif / (60*60)) >= $weatherInfoData->getWindChangeTime()){
+        if(ceil($windTimeDif / (60*60)) >= $weatherInfoData->getWindChangeTime()){
             $userWeatherHistory->setWind(rand($weatherInfoData->getMinWind(), $weatherInfoData->getMaxWind()));
+            $userWeatherHistory->setWindUpdateDate("1");
+        }else{
+            $userWeatherHistory->setWindUpdateDate("");
         }
         //온도 랜덤 갱신 오차 +-5
-        if(ceil($timeDif / (60*60)) >= $weatherInfoData->getTemperatureChangeTime()){
+        if(ceil($temperatureTimeDif / (60*60)) >= $weatherInfoData->getTemperatureChangeTime()){
             $max = $temperature+5;
             $min = $temperature-5;
             if($max >= $weatherInfoData->getMaxTemperature()){
@@ -405,7 +429,36 @@ class UserService extends BaseService
                 $min = $weatherInfoData->getMinTemperature();
             }
             $userWeatherHistory->setTemperature(rand($min,$max));
+            $userWeatherHistory->setTemperatureUpdateDate("1");
+        }else{
+            $userWeatherHistory->setTemperatureUpdateDate("");
         }
         return $userWeatherHistory;
+    }
+
+    protected function getOneWeatherCache(int $code, string $redisKeys): UserWeatherHistory
+    {
+        $redisKey = sprintf($redisKeys, $code);
+        $key = $this->redisService->generateKey($redisKey);
+        if ($this->redisService->exists($key)) {
+            $model = json_decode((string)json_encode($this->redisService->get($key)), false);
+
+            $weatherInfo = new UserWeatherHistory();
+            $weatherInfo->setWeatherHistoryCode($model->weatherHistoryCode);
+            $weatherInfo->setUserCode($model->userCode);
+            $weatherInfo->setWeatherCode($model->weatherCode);
+            $weatherInfo->setTemperature($model->temperature);
+            $weatherInfo->setWind($model->wind);
+            $weatherInfo->setMapCode($model->mapCode);
+            $weatherInfo->setCreateDate($model->createDate);
+            $weatherInfo->setMapUpdateDate($model->mapUpdateDate);
+            $weatherInfo->setWindUpdateDate($model->windUpdateDate);
+            $weatherInfo->setTemperatureUpdateDate($model->temperatureUpdateDate);
+        } else {
+            $myWeatherInfo = new UserWeatherHistory();
+            $myWeatherInfo->setUserCode($code);
+            $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+        }
+        return $weatherInfo;
     }
 }

@@ -33,13 +33,7 @@ class AuctionDBRepository extends BaseRepository implements AuctionRepository
         $statement->bindParam(':auctionCode', $auctionCode);
         $statement->execute();
 
-        if($statement->fetchColumn() > 0){
-            return $statement->fetchObject(AuctionInfoData::class);
-        }else{
-            $auctionInfo = new AuctionInfoData();
-            $auctionInfo->setUserCode(0);
-            return $auctionInfo;
-        }
+        return $statement->fetchObject(AuctionInfoData::class);
     }
 
     public function getAuctionInfoList(SearchInfo $searchInfo): array

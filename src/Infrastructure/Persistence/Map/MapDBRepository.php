@@ -105,7 +105,7 @@ class MapDBRepository extends BaseRepository implements MapRepository
                 ,T.low_tide_time2          AS lowTideTime2
                 ,T.water_splash_time       AS waterSplashTime
                 ,T.appear_probability      AS appearProbability
-                ,MT.create_date            AS createDate
+                ,NOW()            AS createDate
             FROM `map_tide_data` MT
             JOIN `tide_info_data` T ON MT.tide_code = T.tide_code
             WHERE MT.tide_sort = :tideSort

@@ -13,8 +13,8 @@ class GetFishInventoryListAction extends FishingAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new FishingService($this->logger, $this->fishingRepository
-            ,$this->commonRepository, $this->redisService);
+        $service = new FishingService($this->logger ,$this->fishingRepository ,$this->userRepository
+            ,$this->mapRepository ,$this->commonRepository, $this->redisService);
         $payload = $service->getFishInventoryList($input);
         $this->logger->info("get list fish inventory info Action");
         return $this->respondWithData($payload);

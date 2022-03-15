@@ -12,8 +12,10 @@ class UserWeatherHistory implements JsonSerializable
     private int $temperature;
     private int $wind;
     private int $mapCode=0;
-    private string $createDate;
-    private string $updateDate='';
+    private string $createDate='';
+    private string $mapUpdateDate='';
+    private string $windUpdateDate='';
+    private string $temperatureUpdateDate='';
 
     /**
      * @return int
@@ -130,17 +132,49 @@ class UserWeatherHistory implements JsonSerializable
     /**
      * @return string
      */
-    public function getUpdateDate(): string
+    public function getMapUpdateDate(): string
     {
-        return $this->updateDate;
+        return $this->mapUpdateDate;
     }
 
     /**
-     * @param string $updateDate
+     * @param string $mapUpdateDate
      */
-    public function setUpdateDate(string $updateDate): void
+    public function setMapUpdateDate(string $mapUpdateDate): void
     {
-        $this->updateDate = $updateDate;
+        $this->mapUpdateDate = $mapUpdateDate;
+    }
+
+    /**
+     * @return string
+     */
+    public function getWindUpdateDate(): string
+    {
+        return $this->windUpdateDate;
+    }
+
+    /**
+     * @param string $windUpdateDate
+     */
+    public function setWindUpdateDate(string $windUpdateDate): void
+    {
+        $this->windUpdateDate = $windUpdateDate;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTemperatureUpdateDate(): string
+    {
+        return $this->temperatureUpdateDate;
+    }
+
+    /**
+     * @param string $temperatureUpdateDate
+     */
+    public function setTemperatureUpdateDate(string $temperatureUpdateDate): void
+    {
+        $this->temperatureUpdateDate = $temperatureUpdateDate;
     }
 
     #[\ReturnTypeWillChange]
@@ -154,7 +188,9 @@ class UserWeatherHistory implements JsonSerializable
             'wind' => $this->wind,
             'mapCode' => $this->mapCode,
             'createDate' => $this->createDate,
-            'updateDate' => $this->updateDate,
+            'mapUpdateDate' => $this->mapUpdateDate,
+            'windUpdateDate' => $this->windUpdateDate,
+            'temperatureUpdateDate' => $this->temperatureUpdateDate,
         ];
     }
 }

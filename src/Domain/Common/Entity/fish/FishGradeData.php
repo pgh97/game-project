@@ -4,7 +4,7 @@ namespace App\Domain\Common\Entity\fish;
 
 use JsonSerializable;
 
-class fishGradeData implements JsonSerializable
+class FishGradeData implements JsonSerializable
 {
     private int $fishGradeCode;
     private int $fishCode;

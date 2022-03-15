@@ -245,19 +245,24 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $query = '
             INSERT INTO `user_weather_history`
                 (`user_code`, `weather_code`, `temperature`
-                , `wind`, `map_code`,`create_date`, `update_date`)
+                , `wind`, `map_code`,`create_date`, `map_update_date`
+                , `wind_update_date`, `temperature_update_date`)
             VALUES
                 (:userCode, :weatherCode, :temperature
-                , :wind, :mapCode, NOW(), NULL)
+                , :wind, :mapCode, NOW(), NULL, NOW(), NOW())
             ON DUPLICATE KEY UPDATE 
                 temperature=Values(temperature)
                 ,wind=Values(wind)
                 ,map_code=Values(map_code) 
         ';
         if(!empty($userWeatherHistory->getMapCode())){
-            $query .=',update_date=NOW() ';
-        }else{
-            $query .=',create_date=NOW() ';
+            $query .=',map_update_date=NOW() ';
+        }
+        if(!empty($userWeatherHistory->getWindUpdateDate())){
+            $query .=',wind_update_date=NOW() ';
+        }
+        if(!empty($userWeatherHistory->getTemperatureUpdateDate())){
+            $query .=',temperature_update_date=NOW() ';
         }
 
         $statement = $this->database->prepare($query);
@@ -294,7 +299,9 @@ class UserDBRepository extends BaseRepository implements UserRepository
                 ,wind                                       AS wind
                 ,IF(map_code IS NULL, 0, map_code)          AS mapCode
                 ,create_date                                AS createDate
-                ,IF(update_date IS NULL, "", update_date)   AS updateDate
+                ,IF(map_update_date IS NULL, "", map_update_date)   AS mapUpdateDate
+                ,IF(wind_update_date IS NULL, "", wind_update_date)   AS windUpdateDate
+                ,IF(temperature_update_date IS NULL, "", temperature_update_date)   AS temperatureUpdateDate
             FROM `user_weather_history`
             WHERE user_code = :userCode
             AND date(create_date) = date(NOW())
@@ -407,15 +414,24 @@ class UserDBRepository extends BaseRepository implements UserRepository
 
     public function modifyUserWeatherHistory(UserWeatherHistory $userWeatherHistory): int
     {
-        $query = '
+        $queryFront = '
             UPDATE `user_weather_history` 
             SET     temperature = :temperature
-                    ,wind       = :wind
-                    ,create_date = NOW()
-            WHERE weather_history_code = :weatherHistoryCode
-        ';
+                    ,wind       = :wind ';
+        $queryBody ='';
+        $queryEnd = 'WHERE weather_history_code = :weatherHistoryCode';
 
-        $statement = $this->database->prepare($query);
+        if(!empty($userWeatherHistory->getMapUpdateDate())){
+            $queryBody .= ',map_update_date=NOW() ';
+        }
+        if(!empty($userWeatherHistory->getWindUpdateDate())){
+            $queryBody .= ',wind_update_date=NOW() ';
+        }
+        if(!empty($userWeatherHistory->getTemperatureUpdateDate())){
+            $queryBody .= ',temperature_update_date=NOW() ';
+        }
+
+        $statement = $this->database->prepare($queryFront.$queryBody.$queryEnd);
 
         $weatherHistoryCode= $userWeatherHistory->getWeatherHistoryCode();
         $temperature = $userWeatherHistory->getTemperature();

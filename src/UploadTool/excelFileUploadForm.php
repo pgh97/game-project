@@ -43,7 +43,7 @@
 <h5>기획데이터 엑셀파일의 이름은 테이블명과 동일하게 해야함.</h5>
 <h5>그리고 데이터 중 등록일 or 생성일은 제외시킴.</h5>
 <h5>ex) 테이블명 : fish_info_data -> 엑셀파일명 : fish_info_data.xlsx</h5>
-<img src="http://localhost/upload/data_image/example.PNG"/>
+<img src="http://localhost:8888/upload/data_image/example.PNG"/>
 <h5>위의 이미지가 예시.</h5>
 <br><br>
 

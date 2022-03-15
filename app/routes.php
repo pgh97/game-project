@@ -67,12 +67,12 @@ return function (App $app) {
         $group->group('/fishing', function (Group $fishing){
             $fishing->post('/operate', Actions\Fishing\FishingOperateAction::class);
             $fishing->post('/inventorys', Actions\Fishing\GetFishInventoryListAction::class);
-            //$fishing->post('/inventory', Actions\Fishing\GetFishInventoryAction::class);
+            $fishing->post('/inventory', Actions\Fishing\GetFishInventoryAction::class);
         })->add(new JWTAuthMiddleware());
 
         $group->group('/auction', function (Group $auction){
             $auction->post('/items', Actions\Auction\GetAuctionListAction::class);
-            //$auction->post('/item', Actions\Auction\GetAuctionAction::class);
+            $auction->post('/item', Actions\Auction\GetAuctionAction::class);
             //$auction->post('/user-item/sell', );
             //$auction->post('/ranking', );
         })->add(new JWTAuthMiddleware());

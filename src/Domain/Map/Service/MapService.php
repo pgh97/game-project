@@ -25,6 +25,7 @@ class MapService extends BaseService
 
     private const MAP_REDIS_KEY = 'map:%s';
     private const TIDE_REDIS_KEY = 'mapTide:%s';
+    private const WEATHER_REDIS_KEY = 'weather:%s';
 
     public function __construct(LoggerInterface $logger
         ,MapRepository $mapRepository
@@ -81,6 +82,7 @@ class MapService extends BaseService
         if(self::isRedisEnabled() === true){
             $mapInfo = $this->getOneMapCache($data->mapCode, self::MAP_REDIS_KEY);
             $mapTideInfo = $this->getOneMapTideCache($data->mapCode, self::TIDE_REDIS_KEY);
+            $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, self::WEATHER_REDIS_KEY);
         }else{
             $myMapInfo = new MapInfoData();
             $myMapInfo->setMapCode($data->mapCode);
@@ -89,6 +91,10 @@ class MapService extends BaseService
             $myMapInfo = new MapTideData();
             $myMapInfo->setMapCode($data->mapCode);
             $mapTideInfo = $this->mapRepository->getMapTideInfo($myMapInfo);
+
+            $myWeatherInfo = new UserWeatherHistory();
+            $myWeatherInfo->setUserCode($data->decoded->data->userCode);
+            $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
         }
 
         $this->logger->info("map leve port service");
@@ -105,12 +111,11 @@ class MapService extends BaseService
             $this->userRepository->modifyUserShip($myShipInfo);
             $shipInfo = $this->userRepository->getUserShipInfo($myShipInfo);
 
-            $myWeatherInfo = new UserWeatherHistory();
-            $myWeatherInfo->setUserCode($data->decoded->data->userCode);
-            $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
             $weatherInfo->setMapCode($mapInfo->getMapCode());
             $this->userRepository->createUserWeather($weatherInfo);
-
+            if (self::isRedisEnabled() === true) {
+                $this->saveInCache($data->decoded->data->weatherHistoryCode, $weatherInfo, self::WEATHER_REDIS_KEY);
+            }
             return [
                 'mapInfo' => $mapInfo,
                 'mapTideInfo' => $mapTideInfo,
@@ -143,7 +148,7 @@ class MapService extends BaseService
 
         date_default_timezone_set('Asia/Seoul');
         $currentTime = date("Y-m-d H:i:s");
-        $timeDif = strtotime($currentTime) - strtotime($weatherInfo->getUpdateDate());
+        $timeDif = strtotime($currentTime) - strtotime($weatherInfo->getMapUpdateDate());
         $perMinute = ceil($timeDif / (60));
 
         $this->logger->info("map ship durability service ".$perMinute);
@@ -247,6 +252,31 @@ class MapService extends BaseService
             }
         }
         return $mapTideInfo;
+    }
+
+    protected function getOneWeatherCache(int $code, string $redisKeys): UserWeatherHistory
+    {
+        $redisKey = sprintf($redisKeys, $code);
+        $key = $this->redisService->generateKey($redisKey);
+        if ($this->redisService->exists($key)) {
+            $model = json_decode((string)json_encode($this->redisService->get($key)), false);
+            $weatherInfo = new UserWeatherHistory();
+            $weatherInfo->setWeatherHistoryCode($model->weatherHistoryCode);
+            $weatherInfo->setUserCode($model->userCode);
+            $weatherInfo->setWeatherCode($model->weatherCode);
+            $weatherInfo->setTemperature($model->temperature);
+            $weatherInfo->setWind($model->wind);
+            $weatherInfo->setMapCode($model->mapCode);
+            $weatherInfo->setCreateDate($model->createDate);
+            $weatherInfo->setMapUpdateDate($model->mapUpdateDate);
+            $weatherInfo->setWindUpdateDate($model->windUpdateDate);
+            $weatherInfo->setTemperatureUpdateDate($model->temperatureUpdateDate);
+        } else {
+            $myWeatherInfo = new UserWeatherHistory();
+            $myWeatherInfo->setUserCode($code);
+            $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+        }
+        return $weatherInfo;
     }
 
     protected function saveInCache(int $userCode, object $user, string $redisKey): void
