@@ -51,8 +51,8 @@ return function (App $app) {
             $user->post('/fishing-item/change', Actions\User\CreateUserFishingItemAction::class);
             //$user->post('/fishing-item/change', );
             //$user->post('/fishing-item/remove', );
-            //$user->post('/gift-boxs', );
-            //$user->post('/gift-box', );
+            $user->post('/gift-boxs', Actions\User\GetUserGiftBoxListAction::class);
+            $user->post('/gift-box', Actions\User\GetUserGiftBoxAction::class);
             //$user->post('/gift-box/change', );
         })->add(new JWTAuthMiddleware());
 
@@ -60,7 +60,7 @@ return function (App $app) {
             $map->post('/areas', Actions\Map\GetMapListAction::class);
             $map->post('/area', Actions\Map\GetMapAction::class);
             $map->post('/leve-port', Actions\Map\MapLevePortAction::class)->add(new JWTAuthMiddleware());
-            //$map->post('/enter-port', Actions\Map\MapEnterPortAction::class)->add(new JWTAuthMiddleware());
+            $map->post('/enter-port', Actions\Map\MapEnterPortAction::class)->add(new JWTAuthMiddleware());
             $map->post('/ship-durability', Actions\Map\ModifyShipAction::class)->add(new JWTAuthMiddleware());
         });
 
@@ -68,6 +68,7 @@ return function (App $app) {
             $fishing->post('/operate', Actions\Fishing\FishingOperateAction::class);
             $fishing->post('/inventorys', Actions\Fishing\GetFishInventoryListAction::class);
             $fishing->post('/inventory', Actions\Fishing\GetFishInventoryAction::class);
+            $fishing->post('/inventory/remove', Actions\Fishing\DeleteUserFishInventoryAction::class);
         })->add(new JWTAuthMiddleware());
 
         $group->group('/auction', function (Group $auction){

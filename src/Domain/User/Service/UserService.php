@@ -10,11 +10,13 @@ use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
 use App\Domain\User\Entity\UserChoiceItemInfo;
+use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
+use Couchbase\User;
 use Psr\Log\LoggerInterface;
 use Firebase\JWT\JWT;
 
@@ -196,11 +198,10 @@ class UserService extends BaseService
                 $weatherHistoryInfo = $this->weatherChange($weatherInfo, $weatherHistoryInfo);
             }
             //회원별 날씨 정보 등록, 수정
-            $weatherHistoryCode = $this->userRepository->createUserWeather($weatherHistoryInfo);
+            $this->userRepository->createUserWeather($weatherHistoryInfo);
+            $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($weatherHistory);
             if (self::isRedisEnabled() === true) {
-                $weatherHistory->setUserCode($userInfo->getUserCode());
-                $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($weatherHistory);
-                $this->saveInCache($weatherHistoryCode, $weatherHistoryInfo, self::WEATHER_REDIS_KEY);
+                $this->saveInCache($weatherHistoryInfo->getWeatherHistoryCode(), $weatherHistoryInfo, self::WEATHER_REDIS_KEY);
             }
 
             $token = [
@@ -212,14 +213,14 @@ class UserService extends BaseService
                     'accountCode' => $data->decoded->data->accountCode,
                     'accountId' => $data->decoded->data->accountId,
                     'userCode' => $userInfo->getUserCode(),
-                    'weatherHistoryCode' => $weatherHistoryCode,
+                    'weatherHistoryCode' => $weatherHistoryInfo->getWeatherHistoryCode(),
                 ]
             ];
 
             $payload['Authorization'] = 'Bearer ' .JWT::encode($token, $_SERVER['SECRET_KEY'], 'HS256');
             $payload['userInfo'] = $userInfo;
 
-            $this->logger->info("get choice user service");
+            $this->logger->info("get choice user service ");
         }
         return $payload;
     }
@@ -265,6 +266,10 @@ class UserService extends BaseService
 
         $this->userRepository->modifyUserInfo($myUserInfo);
         $result = $this->userRepository->getUserInfo($myUserInfo);
+
+        if (self::isRedisEnabled() === true) {
+            $this->saveInCache($data->decoded->data->userCode, $result, self::USER_REDIS_KEY);
+        }
         $this->logger->info("update user service");
         return $result;
     }
@@ -279,7 +284,7 @@ class UserService extends BaseService
         $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);*/
 
         if(self::isRedisEnabled()==true){
-            $weatherHistoryInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, self::WEATHER_REDIS_KEY);
+            $weatherHistoryInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, $data->decoded->data->userCode,self::WEATHER_REDIS_KEY);
         }else{
             $myWeatherInfo = new UserWeatherHistory();
             $myWeatherInfo->setWeatherHistoryCode($data->decoded->data->weatherHistoryCode);
@@ -307,9 +312,15 @@ class UserService extends BaseService
     public function getUserWeatherInfo(array $input): UserWeatherHistory
     {
         $data = json_decode((string) json_encode($input), false);
-        $myWeatherInfo = new UserWeatherHistory();
-        $myWeatherInfo->setUserCode($data->decoded->data->userCode);
-        $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+        if(self::isRedisEnabled()==true){
+            $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, $data->decoded->data->userCode,self::WEATHER_REDIS_KEY);
+        }else{
+            $myWeatherInfo = new UserWeatherHistory();
+            $myWeatherInfo->setWeatherHistoryCode($data->decoded->data->weatherHistoryCode);
+            $myWeatherInfo->setUserCode($data->decoded->data->userCode);
+            $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+        }
+
         $this->logger->info("get user weather service");
         return $weatherInfo;
     }
@@ -352,6 +363,7 @@ class UserService extends BaseService
         $data = json_decode((string) json_encode($input), false);
         $myUserInventory = new UserInventoryInfo();
         $myUserInventory->setUserCode($data->decoded->data->userCode);
+        $myUserInventory->setInventoryCode($data->InventoryCode);
 
         $userInventory = $this->userRepository->getUserInventory($myUserInventory);
         $this->logger->info("get user inventory service");
@@ -387,6 +399,35 @@ class UserService extends BaseService
         return $resultCode;
     }
 
+    public function getUserGiftBox(array $input): UserGitfBoxInfo
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myBoxInfo = new UserGitfBoxInfo();
+        $myBoxInfo->setUserCode($data->decoded->data->userCode);
+        $myBoxInfo->setBoxCode($data->boxCode);
+
+        $boxInfo = $this->userRepository->getUserGiftBoxInfo($myBoxInfo);
+        $this->logger->info("get user gift box service");
+        return $boxInfo;
+    }
+
+    public function getUserGiftBoxList(array $input): array
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $search = new SearchInfo();
+        $search->setUserCode($data->decoded->data->userCode);
+        $search->setLimit($data->limit);
+        $search->setOffset($data->offset);
+
+        $boxArray = $this->userRepository->getUserGiftBoxList($search);
+        $boxArrayCnt = $this->userRepository->getUserGiftBoxListCnt($search);
+        $this->logger->info("get list user gift box service");
+        return [
+            'userGiftBoxList' => $boxArray,
+            'totalCount' => $boxArrayCnt,
+        ];
+    }
+
     protected function saveInCache(int $userCode, object $user, string $redisKey): void
     {
         $redisKey = sprintf($redisKey, $userCode);
@@ -412,14 +453,14 @@ class UserService extends BaseService
         $temperature = $userWeatherHistory->getTemperature();
 
         //풍량 랜덤 갱신
-        if(ceil($windTimeDif / (60*60)) >= $weatherInfoData->getWindChangeTime()){
+        if(floor($windTimeDif / (60*60)) >= $weatherInfoData->getWindChangeTime()){
             $userWeatherHistory->setWind(rand($weatherInfoData->getMinWind(), $weatherInfoData->getMaxWind()));
             $userWeatherHistory->setWindUpdateDate("1");
         }else{
             $userWeatherHistory->setWindUpdateDate("");
         }
         //온도 랜덤 갱신 오차 +-5
-        if(ceil($temperatureTimeDif / (60*60)) >= $weatherInfoData->getTemperatureChangeTime()){
+        if(floor($temperatureTimeDif / (60*60)) >= $weatherInfoData->getTemperatureChangeTime()){
             $max = $temperature+5;
             $min = $temperature-5;
             if($max >= $weatherInfoData->getMaxTemperature()){
@@ -436,7 +477,7 @@ class UserService extends BaseService
         return $userWeatherHistory;
     }
 
-    protected function getOneWeatherCache(int $code, string $redisKeys): UserWeatherHistory
+    protected function getOneWeatherCache(int $code, int $userCode, string $redisKeys): UserWeatherHistory
     {
         $redisKey = sprintf($redisKeys, $code);
         $key = $this->redisService->generateKey($redisKey);
@@ -456,7 +497,7 @@ class UserService extends BaseService
             $weatherInfo->setTemperatureUpdateDate($model->temperatureUpdateDate);
         } else {
             $myWeatherInfo = new UserWeatherHistory();
-            $myWeatherInfo->setUserCode($code);
+            $myWeatherInfo->setUserCode($userCode);
             $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
         }
         return $weatherInfo;

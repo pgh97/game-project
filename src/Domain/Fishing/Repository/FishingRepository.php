@@ -24,4 +24,16 @@ interface FishingRepository
      * @return int
      */
     public function getUserFishInventoryListCnt(SearchInfo $searchInfo): int;
+
+    /**
+     * @param UserFishInventoryInfo $userFishInventoryInfo
+     * @return int
+     */
+    public function createUserFishInventory(UserFishInventoryInfo $userFishInventoryInfo): int;
+
+    /**
+     * @param UserFishInventoryInfo $userFishInventoryInfo
+     * @return int
+     */
+    public function deleteUserFishInventory(UserFishInventoryInfo $userFishInventoryInfo): int;
 }

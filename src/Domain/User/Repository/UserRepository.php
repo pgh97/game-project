@@ -5,6 +5,8 @@ namespace App\Domain\User\Repository;
 use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\User\Entity\UserChoiceItemInfo;
+use App\Domain\User\Entity\UserFishInventoryInfo;
+use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
@@ -41,6 +43,24 @@ interface UserRepository
      * @return int
      */
     public function createUserShipInfo(UserShipInfo $shipInfo): int;
+
+    /**
+     * @param UserGitfBoxInfo $boxInfo
+     * @return int
+     */
+    public function createUserGiftBox(UserGitfBoxInfo $boxInfo): int;
+
+    /**
+     * @param UserFishInventoryInfo $userFishInventoryInfo
+     * @return int
+     */
+    public function createUserInventoryFish(UserFishInventoryInfo $userFishInventoryInfo): int;
+
+    /**
+     * @param UserFishInventoryInfo $userFishInventoryInfo
+     * @return int
+     */
+    public function createUserFishDictionary(UserFishInventoryInfo $userFishInventoryInfo): int;
 
     /**
      * @param UserInfo $userInfo
@@ -109,6 +129,12 @@ interface UserRepository
     public function getUserFishingItemListCnt(SearchInfo $searchInfo): int;
 
     /**
+     * @param UserChoiceItemInfo $choiceItemInfo
+     * @return UserChoiceItemInfo
+     */
+    public function getUserFishingItem(UserChoiceItemInfo $choiceItemInfo): UserChoiceItemInfo;
+
+    /**
      * @param UserInfo $userInfo
      * @return int
      */
@@ -137,4 +163,34 @@ interface UserRepository
      * @return int
      */
     public function deleteUserInventory(UserInventoryInfo $inventoryInfo): int;
+
+    /**
+     * @param UserInfo $userInfo
+     * @return int
+     */
+    public function modifyUserLevel(UserInfo $userInfo): int;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function getUserFishDictionaryCnt(SearchInfo $searchInfo): int;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return array
+     */
+    public function getUserGiftBoxList(SearchInfo $searchInfo): array;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function getUserGiftBoxListCnt(SearchInfo $searchInfo): int;
+
+    /**
+     * @param UserGitfBoxInfo $boxInfo
+     * @return UserGitfBoxInfo
+     */
+    public function getUserGiftBoxInfo(UserGitfBoxInfo $boxInfo): UserGitfBoxInfo;
 }

@@ -5,6 +5,8 @@ namespace App\Infrastructure\Persistence\User;
 use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\User\Entity\UserChoiceItemInfo;
+use App\Domain\User\Entity\UserFishInventoryInfo;
+use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
@@ -253,7 +255,7 @@ class UserDBRepository extends BaseRepository implements UserRepository
             ON DUPLICATE KEY UPDATE 
                 temperature=Values(temperature)
                 ,wind=Values(wind)
-                ,map_code=Values(map_code) 
+                ,map_code=Values(map_code)
         ';
         if(!empty($userWeatherHistory->getMapCode())){
             $query .=',map_update_date=NOW() ';
@@ -304,13 +306,15 @@ class UserDBRepository extends BaseRepository implements UserRepository
                 ,IF(temperature_update_date IS NULL, "", temperature_update_date)   AS temperatureUpdateDate
             FROM `user_weather_history`
             WHERE user_code = :userCode
-            AND date(create_date) = date(NOW())
         ';
+        //WHERE weather_history_code = :weatherHistoryCode AND date(create_date) = date(NOW())
 
         $statement = $this->database->prepare($query);
         $userCode = $userWeatherHistory->getUserCode();
+        //$weatherHistoryCode = $userWeatherHistory->getWeatherHistoryCode();
 
         $statement->bindParam(':userCode', $userCode);
+        //$statement->bindParam(':weatherHistoryCode', $weatherHistoryCode);
         $statement->execute();
 
         if($statement->rowCount() > 0){
@@ -327,10 +331,10 @@ class UserDBRepository extends BaseRepository implements UserRepository
         if(!empty($inventoryInfo->getInventoryCode())){
             $query = '
                 INSERT INTO `user_inventory_info`
-                    (`inventory_code`, `user_code`, `item_code`, `item_type`, `upgrade_code`, `upgrade_level`
-                    , `item_count`, `item_durability`,`create_date`)
+                    (inventory_code, user_code, item_code, item_type, upgrade_code, upgrade_level
+                    , item_count, item_durability, create_date)
                 VALUES
-                    (:inventoryCode, :userCode, :itemCode, :itemType, :upgradCode, :upgradLevel
+                    (:inventoryCode, :userCode, :itemCode, :itemType, :upgradeCode, :upgradeLevel
                     , :itemCount, :itemDurability, NOW())
                 ON DUPLICATE KEY UPDATE 
                     upgrade_code=Values(upgrade_code)
@@ -421,7 +425,7 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $queryBody ='';
         $queryEnd = 'WHERE weather_history_code = :weatherHistoryCode';
 
-        if(!empty($userWeatherHistory->getMapUpdateDate())){
+        if(!empty($userWeatherHistory->getMapCode())){
             $queryBody .= ',map_update_date=NOW() ';
         }
         if(!empty($userWeatherHistory->getWindUpdateDate())){
@@ -533,16 +537,24 @@ class UserDBRepository extends BaseRepository implements UserRepository
                 ,item_durability         AS itemDurability
                 ,create_date            AS createDate
             FROM `user_inventory_info`
-            WHERE user_code = :userCode
+            WHERE user_code = :userCode AND inventory_code = :InventoryCode
         ';
 
         $statement = $this->database->prepare($query);
         $userCode = $inventoryInfo->getUserCode();
+        $InventoryCode = $inventoryInfo->getInventoryCode();
 
         $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':InventoryCode', $InventoryCode);
         $statement->execute();
 
-        return $statement->fetchObject(UserInventoryInfo::class);
+        if($statement->rowCount()>0){
+            return $statement->fetchObject(UserInventoryInfo::class);
+        }else{
+            $failInventory = new UserInventoryInfo();
+            $failInventory->setInventoryCode(0);
+            return $failInventory;
+        }
     }
 
     public function deleteUserInfo(UserInfo $userInfo): int
@@ -722,5 +734,228 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $statement->execute();
 
         return (int) $this->database->lastInsertId();
+    }
+
+    public function getUserFishingItem(UserChoiceItemInfo $choiceItemInfo): UserChoiceItemInfo
+    {
+        $query = '
+           SELECT 
+                choice_code              AS choiceCode
+                ,user_code               AS userCode
+                ,fishing_rod_code        AS fishingRodCode
+                ,fishing_line_code       AS fishingLineCode
+                ,fishing_needle_code     AS fishingNeedleCode
+                ,fishing_bait_code       AS fishingBaitCode
+                ,fishing_reel_code       AS fishingReelCode
+                ,fishing_item_code1      AS fishingItemCode1
+                ,fishing_item_code2      AS fishingItemCode2
+                ,fishing_item_code3      AS fishingItemCode3
+                ,fishing_item_code4      AS fishingItemCode4
+                ,create_date             AS createDate
+            FROM `user_choice_item_info`
+            WHERE choice_code = :choiceCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $choiceCode = $choiceItemInfo->getChoiceCode();
+
+        $statement->bindParam(':choiceCode', $choiceCode);
+        $statement->execute();
+        return $statement->fetchObject(UserChoiceItemInfo::class);
+    }
+
+    public function modifyUserLevel(UserInfo $userInfo): int
+    {
+        $query = ' 
+            UPDATE `user_info` SET
+                user_experience = :userExperience
+                ,level_code = :levelCode
+                ,fatigue = :fatigue
+                ,use_inventory_count = :useInventoryCount
+            WHERE user_code = :userCode
+        ';
+        $statement = $this->database->prepare($query);
+        $userExperience = $userInfo->getUserExperience();
+        $levelCode = $userInfo->getLevelCode();
+        $fatigue = $userInfo->getFatigue();
+        $useInventoryCount = $userInfo->getUseInventoryCount();
+        $userCode = $userInfo->getUserCode();
+
+        $statement->bindParam(':userExperience', $userExperience);
+        $statement->bindParam(':levelCode', $levelCode);
+        $statement->bindParam(':fatigue', $fatigue);
+        $statement->bindParam(':useInventoryCount', $useInventoryCount);
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function createUserGiftBox(UserGitfBoxInfo $boxInfo): int
+    {
+        $query = '
+            INSERT INTO `user_gift_box_info`
+                (`user_code`, `item_code`, `item_type`, `item_count`
+                ,`read_status` ,`create_date`)
+            SELECT
+            :userCode, CI.item_code, CI.item_type, CI.compensation_value, 0, NOW()
+            FROM quest_info_data QI
+            JOIN quest_compensation_data  QC ON QI.quest_code = QC.quest_code
+            JOIN compensation_info_data CI ON QC.compensation_code = CI.compensation_code
+            WHERE quest_type=:questType AND quest_goal=:questGoal
+        ';
+        $statement = $this->database->prepare($query);
+        $userCode = $boxInfo->getUserCode();
+        $questType = $boxInfo->getQuestType();
+        $questGoal = $boxInfo->getQuestGoal();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':questType', $questType);
+        $statement->bindParam(':questGoal', $questGoal);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function createUserInventoryFish(UserFishInventoryInfo $userFishInventoryInfo): int
+    {
+        $query = '
+                INSERT INTO `user_inventory_info`
+                    (`user_code`, `item_code`, `item_type`, `upgrade_code`, `upgrade_level`
+                    , `item_count`, `item_durability`,`create_date`)
+                SELECT 
+                       user_code, fish_grade_code, 8,  0, 0, 1, 3, now()
+                FROM user_fish_inventory_info 
+                WHERE user_code=:userCode and map_code=:mapCode
+            ';
+        $statement = $this->database->prepare($query);
+        $userCode = $userFishInventoryInfo->getUserCode();
+        $mapCode = $userFishInventoryInfo->getMapCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':mapCode', $mapCode);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function createUserFishDictionary(UserFishInventoryInfo $userFishInventoryInfo): int
+    {
+        $query = '
+                INSERT INTO `user_fish_dictionary`
+                    (`map_fish_code`, `user_code`, `create_date`)
+                SELECT 
+                       distinct(MF.map_fish_code), UI.user_code, NOW()
+                FROM user_fish_inventory_info  UI
+                JOIN fish_grade_data FG ON UI.fish_grade_code = FG.fish_grade_code
+                JOIN map_fish_data MF ON FG.fish_code = MF.fish_code AND UI.map_code = MF.map_code
+                WHERE UI.user_code=:userCode AND UI.map_code=:mapCode
+                ON DUPLICATE KEY UPDATE 
+                map_fish_code=Values(map_fish_code)
+                ,user_code=Values(user_code)
+            ';
+        $statement = $this->database->prepare($query);
+        $userCode = $userFishInventoryInfo->getUserCode();
+        $mapCode = $userFishInventoryInfo->getMapCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':mapCode', $mapCode);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function getUserFishDictionaryCnt(SearchInfo $searchInfo): int
+    {
+        $query = '
+            SELECT 
+                COUNT(*)    AS count
+            FROM user_fish_dictionary UFD
+            JOIN map_fish_data MF ON UFD.map_fish_code = MF.map_fish_code
+            WHERE UFD.user_code=:userCode AND MF.map_code=:mapCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $mapCode = $searchInfo->getItemCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':mapCode', $mapCode);
+        $statement->execute();
+
+        return $statement->fetchColumn();
+    }
+
+    public function getUserGiftBoxList(SearchInfo $searchInfo): array
+    {
+        $query = '
+            SELECT 
+                box_code                AS boxCode
+                ,user_code              AS userCode
+                ,item_code              AS itemCode
+                ,item_type              AS itemType
+                ,item_count             AS itemCount
+                ,read_status            AS readStatus
+                ,create_date            AS createDate
+            FROM `user_gift_box_info`
+            WHERE user_code = :userCode
+            ORDER BY box_code
+            LIMIT :offset , :limit
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $offset = $searchInfo->getOffset();
+        $limit = $searchInfo->getLimit();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':offset', $offset);
+        $statement->bindParam(':limit', $limit);
+        $statement->execute();
+
+        return (array) $statement->fetchAll();
+    }
+
+    public function getUserGiftBoxListCnt(SearchInfo $searchInfo): int
+    {
+        $query = '
+            SELECT 
+                COUNT(*)    AS count
+            FROM `user_gift_box_info`
+            WHERE user_code = :userCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return $statement->fetchColumn();
+    }
+
+    public function getUserGiftBoxInfo(UserGitfBoxInfo $boxInfo): UserGitfBoxInfo
+    {
+        $query = '
+            SELECT 
+                box_code                AS boxCode
+                ,user_code              AS userCode
+                ,item_code              AS itemCode
+                ,item_type              AS itemType
+                ,item_count             AS itemCount
+                ,read_status            AS readStatus
+                ,create_date            AS createDate
+            FROM `user_gift_box_info`
+            WHERE user_code = :userCode AND box_code = :boxCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $boxInfo->getUserCode();
+        $boxCode = $boxInfo->getBoxCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':boxCode', $boxCode);
+        $statement->execute();
+
+        return $statement->fetchObject(UserGitfBoxInfo::class);
     }
 }

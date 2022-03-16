@@ -34,7 +34,13 @@ interface MapRepository
 
     /**
      * @param SearchInfo $searchInfo
-     * @return int
+     * @return array
      */
     public function getMapTideList(SearchInfo $searchInfo): array;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return array
+     */
+    public function getMapFishList(SearchInfo $searchInfo): array;
 }

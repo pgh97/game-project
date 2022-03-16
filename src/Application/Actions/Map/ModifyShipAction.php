@@ -15,7 +15,7 @@ class ModifyShipAction extends MapAction
     {
         $input = (array) $request->getParsedBody();
         $service = new MapService($this->logger, $this->mapRepository, $this->userRepository
-            ,$this->commonRepository, $this->redisService);
+            ,$this->auctionRepository ,$this->fishingRepository ,$this->commonRepository, $this->redisService);
         $payload = array();
         $payload['userShipInfo'] = $service->modifyShipDurability($input);
         if(array_filter($payload)){

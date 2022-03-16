@@ -9,7 +9,7 @@ class UserInventoryInfo implements JsonSerializable
     private int $inventoryCode=0;
     private int $userCode;
     private int $itemCode;
-    private int $itemType; //낚시대: 1, 낚시줄: 2, 바늘: 3, 미끼: 4, 릴: 5
+    private int $itemType; //낚시대: 1, 낚시줄: 2, 바늘: 3, 미끼: 4, 릴: 5, 업그레이트 부품: 6, 버프/회복아이템: 7, 물고기: 8
     private int $upgradeCode=0;
     private int $upgradeLevel=0;
     private int $itemCount;

@@ -2,7 +2,6 @@
 
 namespace App\Domain\User\Entity;
 
-use JetBrains\PhpStorm\Internal\TentativeType;
 use JsonSerializable;
 
 class UserGitfBoxInfo implements JsonSerializable
@@ -10,10 +9,13 @@ class UserGitfBoxInfo implements JsonSerializable
     private int $boxCode;
     private int $userCode;
     private int $itemCode;
-    private int $itemType;
+    private int $itemType; //보상아이템타입(재화 1(골드, 진주),채비 2 바늘, 채비 3 미끼)
     private int $itemCount;
     private int $readStatus;
     private string $createDate;
+
+    private int $questType=0;
+    private int $questGoal=0;
 
     /**
      * @return int
@@ -125,6 +127,38 @@ class UserGitfBoxInfo implements JsonSerializable
     public function setCreateDate(string $createDate): void
     {
         $this->createDate = $createDate;
+    }
+
+    /**
+     * @return int
+     */
+    public function getQuestType(): int
+    {
+        return $this->questType;
+    }
+
+    /**
+     * @param int $questType
+     */
+    public function setQuestType(int $questType): void
+    {
+        $this->questType = $questType;
+    }
+
+    /**
+     * @return int
+     */
+    public function getQuestGoal(): int
+    {
+        return $this->questGoal;
+    }
+
+    /**
+     * @param int $questGoal
+     */
+    public function setQuestGoal(int $questGoal): void
+    {
+        $this->questGoal = $questGoal;
     }
 
     #[\ReturnTypeWillChange]

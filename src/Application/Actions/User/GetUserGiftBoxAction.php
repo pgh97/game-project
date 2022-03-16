@@ -1,23 +1,23 @@
 <?php
 
-namespace App\Application\Actions\Map;
+namespace App\Application\Actions\User;
 
 use App\Domain\DomainException\DomainRecordNotFoundException;
-use App\Domain\Map\Service\MapService;
+use App\Domain\User\Service\UserService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpBadRequestException;
 
-class GetMapAction extends MapAction
+class GetUserGiftBoxAction extends UserAction
 {
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new MapService($this->logger, $this->mapRepository, $this->userRepository
-            ,$this->auctionRepository ,$this->fishingRepository ,$this->commonRepository ,$this->redisService);
+        $service = new UserService($this->logger, $this->userRepository
+            ,$this->commonRepository, $this->redisService);
         $payload = array();
-        $payload['mapInfo'] = $service->getMapInfo($input);
-        $this->logger->info("map info action");
+        $payload['userGiftBoxInfo'] = $service->getUserGiftBox($input);
+        $this->logger->info("get user gift box Action");
         return $this->respondWithData($payload);
     }
 }

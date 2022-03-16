@@ -12,7 +12,7 @@ class AuctionInfoData implements JsonSerializable
     private int $moneyCode;
     private int $auctionPrice;
     private int $changeTime;
-    private string $createDt;
+    private string $createDate;
 
     /**
      * @return int
@@ -113,17 +113,17 @@ class AuctionInfoData implements JsonSerializable
     /**
      * @return string
      */
-    public function getCreateDt(): string
+    public function getCreateDate(): string
     {
-        return $this->createDt;
+        return $this->createDate;
     }
 
     /**
-     * @param string $createDt
+     * @param string $createDate
      */
-    public function setCreateDt(string $createDt): void
+    public function setCreateDate(string $createDate): void
     {
-        $this->createDt = $createDt;
+        $this->createDate = $createDate;
     }
 
     #[\ReturnTypeWillChange]
@@ -136,7 +136,7 @@ class AuctionInfoData implements JsonSerializable
             'moneyCode' => $this->moneyCode,
             'auctionPrice' => $this->auctionPrice,
             'changeTime' => $this->changeTime,
-            'createDate' => $this->createDt,
+            'createDate' => $this->createDate,
         ];
     }
 }

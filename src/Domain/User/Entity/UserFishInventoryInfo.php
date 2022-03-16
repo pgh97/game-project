@@ -6,11 +6,11 @@ use JsonSerializable;
 
 class UserFishInventoryInfo implements JsonSerializable
 {
-    private int $fishInventoryCode;
+    private int $fishInventoryCode=0;
     private int $userCode;
     private int $mapCode;
     private int $fishGradeCode;
-    private int $createDate;
+    private string $createDate;
 
     /**
      * @return int

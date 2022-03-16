@@ -80,4 +80,52 @@ class FishingDBRepository extends BaseRepository implements FishingRepository
         $statement->execute();
         return $statement->fetchColumn();
     }
+
+    public function createUserFishInventory(UserFishInventoryInfo $userFishInventoryInfo): int
+    {
+        $query = '
+            INSERT INTO `user_fish_inventory_info`
+                (`user_code`, `map_code`, `fish_grade_code`,`create_date`)
+            VALUES
+                (:userCode, :mapCode, :fishGradeCode, NOW())
+        ';
+
+
+        $statement = $this->database->prepare($query);
+
+        $userCode = $userFishInventoryInfo->getUserCode();
+        $mapCode = $userFishInventoryInfo->getMapCode();
+        $fishGradeCode = $userFishInventoryInfo->getFishGradeCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':mapCode', $mapCode);
+        $statement->bindParam(':fishGradeCode', $fishGradeCode);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function deleteUserFishInventory(UserFishInventoryInfo $userFishInventoryInfo): int
+    {
+        $query = '
+            DELETE FROM `user_fish_inventory_info`       
+            WHERE user_code =:userCode 
+        ';
+
+        if(!empty($userFishInventoryInfo->getFishInventoryCode())){
+            $query .= 'AND fish_inventory_code = :fishInventoryCode';
+        }
+
+        $statement = $this->database->prepare($query);
+        $userCode= $userFishInventoryInfo->getUserCode();
+        $statement->bindParam(':userCode', $userCode);
+
+        if(!empty($userFishInventoryInfo->getFishInventoryCode())){
+            $fishInventoryCode= $userFishInventoryInfo->getFishInventoryCode();
+            $statement->bindParam(':fishInventoryCode', $fishInventoryCode);
+        }
+
+        $statement->execute();
+        return $statement->rowCount();
+    }
 }

@@ -14,8 +14,11 @@ class MapEnterPortAction extends MapAction
     {
         $input = (array) $request->getParsedBody();
         $service = new MapService($this->logger, $this->mapRepository, $this->userRepository
-            ,$this->commonRepository, $this->redisService);
-        $payload = array();
-        return $this->respondWithData($payload);
+            ,$this->auctionRepository ,$this->fishingRepository ,$this->commonRepository, $this->redisService);
+        $payload = $service->mapEnterPort($input);
+        $this->logger->info("success enter port action");
+        $message = $payload['message'];
+        unset($payload['message']);
+        return $this->respondWithData($payload, 200, null, $message);
     }
 }

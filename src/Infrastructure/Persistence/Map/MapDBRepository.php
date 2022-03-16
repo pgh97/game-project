@@ -18,6 +18,7 @@ class MapDBRepository extends BaseRepository implements MapRepository
                 map_code                AS mapCode
                 ,map_name               AS mapName
                 ,max_depth              AS maxDepth
+                ,min_depth              AS minDepth
                 ,min_level              AS minLevel
                 ,distance               AS distance
                 ,money_code             AS moneyCode
@@ -47,6 +48,7 @@ class MapDBRepository extends BaseRepository implements MapRepository
                 map_code                AS mapCode
                 ,map_name               AS mapName
                 ,max_depth              AS maxDepth
+                ,min_depth              AS minDepth
                 ,min_level              AS minLevel
                 ,distance               AS distance
                 ,money_code             AS moneyCode
@@ -151,14 +153,42 @@ class MapDBRepository extends BaseRepository implements MapRepository
                 ,MT.create_date            AS createDate
             FROM `map_tide_data` MT
             JOIN `tide_info_data` T ON MT.tide_code = T.tide_code
-            WHERE MT.map_code = :mapCode 
+            WHERE MT.map_code = :mapCode AND MT.tide_sort = :tideSort
         ';
 
         $statement = $this->database->prepare($query);
         $mapCode = $mapTideData->getMapCode();
+        $tide_sort = $mapTideData->getTideSort();
+
+        $statement->bindParam(':mapCode', $mapCode);
+        $statement->bindParam(':tideSort', $tide_sort);
+        $statement->execute();
+        return $statement->fetchObject(MapTideData::class);
+    }
+
+    public function getMapFishList(SearchInfo $searchInfo): array
+    {
+        $query = '
+            SELECT 
+            MF.map_fish_code        As mapFishCode
+            ,MF.map_code            AS mapCode
+            ,FI.fish_code           AS fishCode
+            ,FI.fish_name           AS fishName
+            ,FI.min_depth           AS minDepth
+            ,FI.max_depth           AS mapDepth
+            ,FI.min_size            AS minSize
+            ,FI.max_size            AS maxSize
+            ,FI.fish_probability    AS fishProbability
+            FROM `map_fish_data` MF
+            JOIN `fish_info_data` FI ON MF.fish_code = FI.fish_code
+            WHERE MF.map_code = :mapCode;
+        ';
+
+        $statement = $this->database->prepare($query);
+        $mapCode = $searchInfo->getItemCode();
 
         $statement->bindParam(':mapCode', $mapCode);
         $statement->execute();
-        return $statement->fetchObject(MapTideData::class);
+        return (array) $statement->fetchAll();
     }
 }

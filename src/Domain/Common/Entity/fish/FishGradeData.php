@@ -9,8 +9,9 @@ class FishGradeData implements JsonSerializable
     private int $fishGradeCode;
     private int $fishCode;
     private int $gradeCode;
+    private string $gradeName;
     private int $minValue;
-    private int $maxValue;
+    private int $maxValues;
     private int $addExperience;
     private int $moneyCode;
     private int $minPrice;
@@ -68,6 +69,22 @@ class FishGradeData implements JsonSerializable
     /**
      * @return int
      */
+    public function getGradeName(): int
+    {
+        return $this->gradeName;
+    }
+
+    /**
+     * @param int $gradeName
+     */
+    public function setGradeName(int $gradeName): void
+    {
+        $this->gradeName = $gradeName;
+    }
+
+    /**
+     * @return int
+     */
     public function getMinValue(): int
     {
         return $this->minValue;
@@ -84,17 +101,17 @@ class FishGradeData implements JsonSerializable
     /**
      * @return int
      */
-    public function getMaxValue(): int
+    public function getMaxValues(): int
     {
-        return $this->maxValue;
+        return $this->maxValues;
     }
 
     /**
-     * @param int $maxValue
+     * @param int $maxValues
      */
-    public function setMaxValue(int $maxValue): void
+    public function setMaxValues(int $maxValues): void
     {
-        $this->maxValue = $maxValue;
+        $this->maxValues = $maxValues;
     }
 
     /**
@@ -184,8 +201,9 @@ class FishGradeData implements JsonSerializable
             'fishGradeCode' => $this->fishGradeCode,
             'fishCode' => $this->fishCode,
             'gradeCode' => $this->gradeCode,
+            'gradeName' => $this->gradeName,
             'minValue' => $this->minValue,
-            'maxValue' => $this->maxValue,
+            'maxValue' => $this->maxValues,
             'addExperience' => $this->addExperience,
             'moneyCode' => $this->moneyCode,
             'minPrice' => $this->minPrice,

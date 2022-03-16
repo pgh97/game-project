@@ -2,13 +2,17 @@
 
 namespace App\Domain\Map\Service;
 
+use App\Domain\Auction\Repository\AuctionRepository;
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Map\Entity\MapInfoData;
 use App\Domain\Map\Entity\MapTideData;
 use App\Domain\Map\Repository\MapRepository;
+use App\Domain\User\Entity\UserFishInventoryInfo;
+use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
@@ -20,22 +24,29 @@ class MapService extends BaseService
     protected MapRepository $mapRepository;
     protected UserRepository $userRepository;
     protected CommonRepository $commonRepository;
+    protected AuctionRepository $auctionRepository;
+    protected FishingRepository $fishingRepository;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
 
     private const MAP_REDIS_KEY = 'map:%s';
     private const TIDE_REDIS_KEY = 'mapTide:%s';
     private const WEATHER_REDIS_KEY = 'weather:%s';
+    private const USER_REDIS_KEY = 'user:%s';
 
     public function __construct(LoggerInterface $logger
         ,MapRepository $mapRepository
         ,UserRepository $userRepository
+        ,AuctionRepository $auctionRepository
+        ,FishingRepository $fishingRepository
         ,CommonRepository $commonRepository
         ,RedisService $redisService)
     {
         $this->logger = $logger;
         $this->mapRepository = $mapRepository;
         $this->userRepository = $userRepository;
+        $this->auctionRepository = $auctionRepository;
+        $this->fishingRepository = $fishingRepository;
         $this->commonRepository = $commonRepository;
         $this->redisService = $redisService;
     }
@@ -71,10 +82,6 @@ class MapService extends BaseService
     public function mapLevePort(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
-        $myUserInfo = new UserInfo();
-        $myUserInfo->setUserCode($data->decoded->data->userCode);
-        $userInfo = $this->userRepository->getUserInfo($myUserInfo);
-
         $myShipInfo = new UserShipInfo();
         $myShipInfo->setUserCode($data->decoded->data->userCode);
         $shipInfo = $this->userRepository->getUserShipInfo($myShipInfo);
@@ -82,52 +89,168 @@ class MapService extends BaseService
         if(self::isRedisEnabled() === true){
             $mapInfo = $this->getOneMapCache($data->mapCode, self::MAP_REDIS_KEY);
             $mapTideInfo = $this->getOneMapTideCache($data->mapCode, self::TIDE_REDIS_KEY);
-            $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, self::WEATHER_REDIS_KEY);
+            $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, $data->decoded->data->userCode,self::WEATHER_REDIS_KEY);
+            $userInfo = $this->getOneUserCache($data->decoded->data->userCode, self::USER_REDIS_KEY);
         }else{
             $myMapInfo = new MapInfoData();
             $myMapInfo->setMapCode($data->mapCode);
             $mapInfo = $this->mapRepository->getMapInfo($myMapInfo);
 
-            $myMapInfo = new MapTideData();
-            $myMapInfo->setMapCode($data->mapCode);
-            $mapTideInfo = $this->mapRepository->getMapTideInfo($myMapInfo);
+            $myMapTideInfo = new MapTideData();
+            $myMapTideInfo->setMapCode($data->mapCode);
+            $myMapTideInfo->setTideSort(1);
+            $mapTideInfo = $this->mapRepository->getMapTideInfo($myMapTideInfo);
 
             $myWeatherInfo = new UserWeatherHistory();
             $myWeatherInfo->setUserCode($data->decoded->data->userCode);
             $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+
+            $myUserInfo = new UserInfo();
+            $myUserInfo->setUserCode($data->decoded->data->userCode);
+            $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         }
 
         $this->logger->info("map leve port service");
-        if($userInfo->getFatigue() >= $mapInfo->getDeparturePrice()
-            && $shipInfo->getDurability() >= $mapInfo->getDepartureTime() * $mapInfo->getPerDurability()
-            && $shipInfo->getFuel() >= $mapInfo->getDistance()*2){
+        if($userInfo->getLevelCode() >= $mapInfo->getMinLevel()){
+            if($userInfo->getFatigue() >= $mapInfo->getDeparturePrice()
+                && $shipInfo->getDurability() >= $mapInfo->getDepartureTime() * $mapInfo->getPerDurability()
+                && $shipInfo->getFuel() >= $mapInfo->getDistance()*2){
 
-            $userInfo->setFatigue($userInfo->getFatigue()-$mapInfo->getDeparturePrice());
-            $this->userRepository->modifyUserInfo($userInfo);
-            $userInfo = $this->userRepository->getUserInfo($userInfo);
+                $userInfo->setFatigue($userInfo->getFatigue()-$mapInfo->getDeparturePrice());
+                $this->userRepository->modifyUserInfo($userInfo);
+                $userInfo = $this->userRepository->getUserInfo($userInfo);
 
-            $myShipInfo->setDurability($shipInfo->getDurability() - ($mapInfo->getDepartureTime() * $mapInfo->getPerDurability()));
-            $myShipInfo->setFuel($shipInfo->getFuel() - ($mapInfo->getDistance()*2));
-            $this->userRepository->modifyUserShip($myShipInfo);
-            $shipInfo = $this->userRepository->getUserShipInfo($myShipInfo);
+                $myShipInfo->setDurability($shipInfo->getDurability() - ($mapInfo->getDepartureTime() * $mapInfo->getPerDurability()));
+                $myShipInfo->setFuel($shipInfo->getFuel() - ($mapInfo->getDistance()*2));
+                $this->userRepository->modifyUserShip($myShipInfo);
+                $shipInfo = $this->userRepository->getUserShipInfo($myShipInfo);
 
-            $weatherInfo->setMapCode($mapInfo->getMapCode());
-            $this->userRepository->createUserWeather($weatherInfo);
-            if (self::isRedisEnabled() === true) {
-                $myWeatherInfo = new UserWeatherHistory();
-                $myWeatherInfo->setUserCode($data->decoded->data->userCode);
-                $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
-                $this->saveInCache($data->decoded->data->weatherHistoryCode, $weatherInfo, self::WEATHER_REDIS_KEY);
+                $weatherInfo->setMapCode($mapInfo->getMapCode());
+                $weatherInfo->setWindUpdateDate("");
+                $weatherInfo->setTemperatureUpdateDate("");
+                $this->userRepository->createUserWeather($weatherInfo);
+                if (self::isRedisEnabled() === true) {
+                    $weatherInfo = $this->userRepository->getUserWeatherHistory($weatherInfo);
+                    $this->saveInCache($data->decoded->data->weatherHistoryCode, $weatherInfo, self::WEATHER_REDIS_KEY);
+                    $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
+                }
+                return [
+                    'mapInfo' => $mapInfo,
+                    'mapTideInfo' => $mapTideInfo,
+                    'userInfo' => $userInfo,
+                    'shipInfo' => $shipInfo,
+                    'message' => $mapInfo->getMapName()."으로 출항했습니다.",
+                ];
+            }else{
+                return [
+                    'mapInfo' => $mapInfo,
+                    'mapTideInfo' => $mapTideInfo,
+                    'userInfo' => $userInfo,
+                    'shipInfo' => $shipInfo,
+                    'message' => '보로롱24의 내구도와 연로 혹은 피로도를 확인해주세요.'
+                ];
             }
+        }else{
             return [
                 'mapInfo' => $mapInfo,
                 'mapTideInfo' => $mapTideInfo,
                 'userInfo' => $userInfo,
                 'shipInfo' => $shipInfo,
+                'message' => '최소레벨을 충족하지 못해서 입장할 수 없습니다.'
             ];
-        }else{
-            return [];
         }
+    }
+
+    public function mapEnterPort(array $input): array
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myShipInfo = new UserShipInfo();
+        $myShipInfo->setUserCode($data->decoded->data->userCode);
+        $shipInfo = $this->userRepository->getUserShipInfo($myShipInfo);
+
+        if(self::isRedisEnabled() === true){
+            $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, $data->decoded->data->userCode,self::WEATHER_REDIS_KEY);
+            $userInfo = $this->getOneUserCache($data->decoded->data->userCode, self::USER_REDIS_KEY);
+            $mapInfo = $this->getOneMapCache($weatherInfo->getMapCode(), self::MAP_REDIS_KEY);
+            $mapTideInfo = $this->getOneMapTideCache($weatherInfo->getMapCode(), self::TIDE_REDIS_KEY);
+        }else{
+            $myWeatherInfo = new UserWeatherHistory();
+            $myWeatherInfo->setUserCode($data->decoded->data->userCode);
+            $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+
+            $myUserInfo = new UserInfo();
+            $myUserInfo->setUserCode($data->decoded->data->userCode);
+            $userInfo = $this->userRepository->getUserInfo($myUserInfo);
+
+            $myMapInfo = new MapInfoData();
+            $myMapInfo->setMapCode($weatherInfo->getMapCode());
+            $mapInfo = $this->mapRepository->getMapInfo($myMapInfo);
+
+            $myMapTideInfo = new MapTideData();
+            $myMapTideInfo->setMapCode($weatherInfo->getMapCode());
+            $myMapTideInfo->setTideSort(1);
+            $mapTideInfo = $this->mapRepository->getMapTideInfo($myMapTideInfo);
+        }
+
+        date_default_timezone_set('Asia/Seoul');
+        $currentTime = date("Y-m-d H:i:s");
+        $timeDif = strtotime($currentTime) - strtotime($weatherInfo->getMapUpdateDate());
+        $perMinute = floor($timeDif / (60));
+
+        if($shipInfo->getDurability() >= $perMinute * $mapInfo->getPerDurability()){
+            $shipInfo->setDurability($shipInfo->getDurability() - ($perMinute * $mapInfo->getPerDurability()));
+        }else{
+            $shipInfo->setDurability(0);
+        }
+        $this->userRepository->modifyUserShip($shipInfo);
+
+        //날짜 히스토리 수정
+        $weatherInfo->setMapCode(0);
+        $weatherInfo->setWindUpdateDate("");
+        $weatherInfo->setTemperatureUpdateDate("");
+        $this->userRepository->createUserWeather($weatherInfo);
+
+        //물고기 인벤토리 등록
+        $userFishInventory = new UserFishInventoryInfo();
+        $userFishInventory->setUserCode($data->decoded->data->userCode);
+        $userFishInventory->setMapCode($mapInfo->getMapCode());
+        $this->userRepository->createUserInventoryFish($userFishInventory);
+
+        //경매 등록
+        $this->auctionRepository->createAuctionInfo($userFishInventory);
+
+        //도감 등록
+        $this->userRepository->createUserFishDictionary($userFishInventory);
+        //도감 카운트
+        $search = new SearchInfo();
+        $search->setUserCode($data->decoded->data->userCode);
+        $search->setItemCode($mapInfo->getMapCode());
+        $dictionaryCnt = $this->userRepository->getUserFishDictionaryCnt($search);
+
+        if($dictionaryCnt == $mapInfo->getMapFishCount()){
+            $boxInfo = new UserGitfBoxInfo();
+            $boxInfo->setUserCode($userInfo->getUserCode());
+            $boxInfo->setQuestType(2);
+            $boxInfo->setQuestGoal($mapInfo->getMapCode());
+            $this->userRepository->createUserGiftBox($boxInfo);
+        }
+
+        if (self::isRedisEnabled() === true) {
+            $weatherInfo = $this->userRepository->getUserWeatherHistory($weatherInfo);
+            $this->saveInCache($data->decoded->data->weatherHistoryCode, $weatherInfo, self::WEATHER_REDIS_KEY);
+        }
+
+        //임시 물고기 인벤토리 삭제
+        $this->fishingRepository->deleteUserFishInventory($userFishInventory);
+
+        $this->logger->info("map enter port service");
+        return [
+            'mapInfo' => $mapInfo,
+            'mapTideInfo' => $mapTideInfo,
+            'userInfo' => $userInfo,
+            'shipInfo' => $shipInfo,
+            'message' => "항구로 입항했습니다.",
+        ];
     }
 
     public function modifyShipDurability(array $input):UserShipInfo
@@ -139,7 +262,7 @@ class MapService extends BaseService
 
         if(self::isRedisEnabled() === true){
             $mapInfo = $this->getOneMapCache($data->mapCode, self::MAP_REDIS_KEY);
-            $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, self::WEATHER_REDIS_KEY);
+            $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, $data->decoded->data->userCode,self::WEATHER_REDIS_KEY);
         }else{
             $myMapInfo = new MapInfoData();
             $myMapInfo->setMapCode($data->mapCode);
@@ -153,20 +276,20 @@ class MapService extends BaseService
         date_default_timezone_set('Asia/Seoul');
         $currentTime = date("Y-m-d H:i:s");
         $timeDif = strtotime($currentTime) - strtotime($weatherInfo->getMapUpdateDate());
-        $perMinute = ceil($timeDif / (60));
+        $perMinute = floor($timeDif / (60));
 
-        $this->logger->info("map ship durability service ".$perMinute);
+        $this->logger->info("map ship durability service");
         if($shipInfo->getDurability() >= $perMinute * $mapInfo->getPerDurability()){
             $shipInfo->setDurability($shipInfo->getDurability() - ($perMinute * $mapInfo->getPerDurability()));
             $this->userRepository->modifyUserShip($shipInfo);
 
             $weatherInfo->setMapCode($mapInfo->getMapCode());
+            $weatherInfo->setWindUpdateDate("");
+            $weatherInfo->setTemperatureUpdateDate("");
             $this->userRepository->createUserWeather($weatherInfo);
 
             if (self::isRedisEnabled() === true) {
-                $myWeatherInfo = new UserWeatherHistory();
-                $myWeatherInfo->setUserCode($data->decoded->data->userCode);
-                $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
+                $weatherInfo = $this->userRepository->getUserWeatherHistory($weatherInfo);
                 $this->saveInCache($data->decoded->data->weatherHistoryCode, $weatherInfo, self::WEATHER_REDIS_KEY);
             }
 
@@ -182,10 +305,12 @@ class MapService extends BaseService
         $key = $this->redisService->generateKey($redisKey);
         if ($this->redisService->exists($key)) {
             $model = json_decode((string) json_encode($this->redisService->get($key)), false);
+
             $mapInfo = new MapInfoData();
             $mapInfo->setMapCode($model->mapCode);
             $mapInfo->setMapName($model->mapName);
             $mapInfo->setMaxDepth($model->maxDepth);
+            $mapInfo->setMinDepth($model->minDepth);
             $mapInfo->setMinLevel($model->minLevel);
             $mapInfo->setDistance($model->distance);
             $mapInfo->setMoneyCode($model->moneyCode);
@@ -249,6 +374,7 @@ class MapService extends BaseService
         }else{
             $myMapInfo = new MapTideData();
             $myMapInfo->setMapCode($code);
+            $myMapInfo->setSort(1);
             $mapTideInfo = $this->mapRepository->getMapTideInfo($myMapInfo);
 
             $search = new SearchInfo();
@@ -262,7 +388,7 @@ class MapService extends BaseService
         return $mapTideInfo;
     }
 
-    protected function getOneWeatherCache(int $code, string $redisKeys): UserWeatherHistory
+    protected function getOneWeatherCache(int $code, int $userCode, string $redisKeys): UserWeatherHistory
     {
         $redisKey = sprintf($redisKeys, $code);
         $key = $this->redisService->generateKey($redisKey);
@@ -282,10 +408,37 @@ class MapService extends BaseService
             $weatherInfo->setTemperatureUpdateDate($model->temperatureUpdateDate);
         } else {
             $myWeatherInfo = new UserWeatherHistory();
-            $myWeatherInfo->setUserCode($code);
+            $myWeatherInfo->setUserCode($userCode);
             $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
         }
         return $weatherInfo;
+    }
+
+    protected function getOneUserCache(int $code, string $redisKeys): UserInfo
+    {
+        $redisKey = sprintf($redisKeys, $code);
+        $key = $this->redisService->generateKey($redisKey);
+        if ($this->redisService->exists($key)) {
+            $model = json_decode((string)json_encode($this->redisService->get($key)), false);
+
+            $userInfo = new UserInfo();
+            $userInfo->setAccountCode($model->accountCode);
+            $userInfo->setUserCode($model->userCode);
+            $userInfo->setUserNickNm($model->userNickNm);
+            $userInfo->setLevelCode($model->levelCode);
+            $userInfo->setUserExperience($model->userExperience);
+            $userInfo->setMoneyGold($model->moneyGold);
+            $userInfo->setMoneyPearl($model->moneyPearl);
+            $userInfo->setFatigue($model->fatigue);
+            $userInfo->setUseInventoryCount($model->useInventoryCount);
+            $userInfo->setUseSaveItemCount($model->useSaveItemCount);
+            $userInfo->setCreateDate($model->createDate);
+        } else {
+            $myUserInfo = new UserInfo();
+            $myUserInfo->setUserCode($code);
+            $userInfo = $this->userRepository->getUserInfo($myUserInfo);
+        }
+        return $userInfo;
     }
 
     protected function saveInCache(int $userCode, object $user, string $redisKey): void
