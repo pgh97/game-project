@@ -15,7 +15,8 @@ class MapLevePortAction extends MapAction
     {
         $input = (array) $request->getParsedBody();
         $service = new MapService($this->logger, $this->mapRepository, $this->userRepository
-            ,$this->auctionRepository ,$this->fishingRepository ,$this->commonRepository, $this->redisService);
+            ,$this->auctionRepository ,$this->fishingRepository ,$this->questRepository
+            ,$this->commonRepository, $this->redisService);
         $payload = $service->mapLevePort($input);
         if(array_filter($payload)){
             $this->logger->info("success leve port action");

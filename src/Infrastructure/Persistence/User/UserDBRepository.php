@@ -9,6 +9,7 @@ use App\Domain\User\Entity\UserFishInventoryInfo;
 use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
+use App\Domain\User\Entity\UserQuestInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
@@ -16,7 +17,6 @@ use App\Infrastructure\Persistence\BaseRepository;
 
 class UserDBRepository extends BaseRepository implements UserRepository
 {
-
     public function createUserInfo(UserInfo $userInfo): int
     {
         $query = '
@@ -511,13 +511,29 @@ class UserDBRepository extends BaseRepository implements UserRepository
             SELECT 
                 COUNT(*)    AS count
             FROM `user_inventory_info`
-            WHERE user_code = :userCode
+            WHERE user_code = :userCode 
         ';
+
+        if(!empty($searchInfo->getItemCode())){
+            $query .= 'AND item_code=:itemCode ';
+        }
+        if (!empty($searchInfo->getItemType())){
+            $query .= 'AND item_type=:itemType AND item_durability !=0 ';
+        }
 
         $statement = $this->database->prepare($query);
         $userCode = $searchInfo->getUserCode();
 
         $statement->bindParam(':userCode', $userCode);
+        if(!empty($searchInfo->getItemCode())){
+            $itemCode = $searchInfo->getItemCode();
+            $statement->bindParam(':itemCode', $itemCode);
+        }
+        if (!empty($searchInfo->getItemType())){
+            $itemType = $searchInfo->getItemType();
+            $statement->bindParam(':itemType', $itemType);
+        }
+
         $statement->execute();
 
         return $statement->fetchColumn();
@@ -662,7 +678,37 @@ class UserDBRepository extends BaseRepository implements UserRepository
 
     public function getUserFishingItemList(SearchInfo $searchInfo): array
     {
-        return [];
+        $query = '
+            SELECT 
+                choice_code              AS choiceCode
+                ,user_code               AS userCode
+                ,fishing_rod_code        AS fishingRodCode
+                ,fishing_line_code       AS fishingLineCode
+                ,fishing_needle_code     AS fishingNeedleCode
+                ,fishing_bait_code       AS fishingBaitCode
+                ,fishing_reel_code       AS fishingReelCode
+                ,fishing_item_code1      AS fishingItemCode1
+                ,fishing_item_code2      AS fishingItemCode2
+                ,fishing_item_code3      AS fishingItemCode3
+                ,fishing_item_code4      AS fishingItemCode4
+                ,create_date             AS createDate
+            FROM `user_choice_item_info`
+            WHERE user_code = :userCode
+            ORDER BY choice_code
+            LIMIT :offset , :limit
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $offset = $searchInfo->getOffset();
+        $limit = $searchInfo->getLimit();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':offset', $offset);
+        $statement->bindParam(':limit', $limit);
+        $statement->execute();
+
+        return (array) $statement->fetchAll();
     }
 
     public function getUserFishingItemListCnt(SearchInfo $searchInfo): int
@@ -924,10 +970,18 @@ class UserDBRepository extends BaseRepository implements UserRepository
             WHERE user_code = :userCode
         ';
 
+        if (!empty($searchInfo->getItemType())){
+            $query .= 'AND item_type!=:itemType AND read_status = 0';
+        }
+
         $statement = $this->database->prepare($query);
         $userCode = $searchInfo->getUserCode();
-
         $statement->bindParam(':userCode', $userCode);
+        if (!empty($searchInfo->getItemType())){
+            $itemType = $searchInfo->getItemType();
+            $statement->bindParam(':itemType', $itemType);
+        }
+
         $statement->execute();
 
         return $statement->fetchColumn();
@@ -957,5 +1011,158 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $statement->execute();
 
         return $statement->fetchObject(UserGitfBoxInfo::class);
+    }
+
+    public function modifyUserInventoryFishDurability(UserInventoryInfo $inventoryInfo): int
+    {
+        $query = ' 
+            UPDATE `user_inventory_info` SET
+               item_durability = item_durability - datediff(date(now()), date(create_date))
+                ,create_date = NOW()
+            WHERE user_code = :userCode AND item_type = :itemType 
+            AND date(create_date) < date(now())
+        ';
+        $statement = $this->database->prepare($query);
+        $userCode = $inventoryInfo->getUserCode();
+        $itemType = $inventoryInfo->getItemType();
+
+        $statement->bindParam(':itemType', $itemType);
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function deleteUserInventoryFish(SearchInfo $searchInfo): int
+    {
+        $query = '
+            DELETE 
+            FROM `user_inventory_info`
+            WHERE inventory_code IN (
+                SELECT a.inventory_code
+                FROM (
+                    SELECT inventory_code
+                    FROM user_inventory_info 
+                    WHERE user_code =:userCode AND item_code=:itemCode AND item_type=:itemType
+                    ORDER BY inventory_code
+                ) AS a
+            )
+            LIMIT :limit
+        ';
+        $statement = $this->database->prepare($query);
+        $userCode= $searchInfo->getUserCode();
+        $itemCode = $searchInfo->getItemCode();
+        $itemType = $searchInfo->getItemType();
+        $limit = $searchInfo->getLimit();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->bindParam(':limit', $limit);
+        $statement->execute();
+        return $statement->rowCount();
+    }
+
+    public function createUserQuestInfo(UserQuestInfo $userQuestInfo): int
+    {
+        $query = '
+            INSERT INTO `user_quest_info`
+                (`user_code`, `quest_code`,`create_date`)
+            VALUES
+                (:userCode, :questCode, NOW())
+        ';
+        $statement = $this->database->prepare($query);
+        $userCode = $userQuestInfo->getUserCode();
+        $questCode = $userQuestInfo->getQuestCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':questCode', $questCode);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function getUserQuestInfoCnt(UserQuestInfo $userQuestInfo): int
+    {
+        $query = '
+            SELECT 
+                COUNT(*)    AS count
+            FROM `user_quest_info`
+            WHERE user_code = :userCode AND quest_code = :questCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $userQuestInfo->getUserCode();
+        $questCode = $userQuestInfo->getQuestCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':questCode', $questCode);
+        $statement->execute();
+
+        return $statement->fetchColumn();
+    }
+
+    public function createUserGiftBoxToInventory(UserGitfBoxInfo $boxInfo): int
+    {
+        $query = '
+                INSERT INTO `user_inventory_info`
+                    (`user_code`, `item_code`, `item_type`, `upgrade_code`, `upgrade_level`
+                    , `item_count`, `item_durability`,`create_date`)
+                SELECT 
+                       user_code, item_code, item_type, 0, 0 , item_count, 1 , NOW()
+                FROM user_gift_box_info 
+                WHERE user_code=:userCode AND item_type != 1 AND read_status = 0
+            ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $boxInfo->getUserCode();
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function modifyUserGiftBoxStatus(UserGitfBoxInfo $boxInfo): int
+    {
+        $query = ' 
+            UPDATE `user_gift_box_info` SET
+               read_status = 1
+            WHERE user_code = :userCode
+        ';
+
+        if(!empty($boxInfo->getBoxCode())){
+            $query .= 'AND box_code = :boxCode';
+        }
+
+        $statement = $this->database->prepare($query);
+        $userCode = $boxInfo->getUserCode();
+        $statement->bindParam(':userCode', $userCode);
+
+        if(!empty($boxInfo->getBoxCode())){
+            $boxCode = $boxInfo->getBoxCode();
+            $statement->bindParam(':boxCode', $boxCode);
+        }
+        $statement->execute();
+        return (int) $this->database->lastInsertId();
+    }
+
+    public function modifyUserInfoGiftBox(UserGitfBoxInfo $boxInfo): int
+    {
+        $query = ' 
+            UPDATE `user_info` SET
+               money_gold = money_gold + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode1 and item_type=1 and item_code=1 and read_status = 0)
+                ,money_pearl = money_pearl + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode2 and item_type=1 and item_code=2 and read_status = 0)
+                ,fatigue = fatigue + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode3 and item_type=1 and item_code=3 and read_status = 0)
+            WHERE user_code = :userCode4
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $boxInfo->getUserCode();
+
+        $statement->bindParam(':userCode1', $userCode);
+        $statement->bindParam(':userCode2', $userCode);
+        $statement->bindParam(':userCode3', $userCode);
+        $statement->bindParam(':userCode4', $userCode);
+        $statement->execute();
+        return (int) $this->database->lastInsertId();
     }
 }

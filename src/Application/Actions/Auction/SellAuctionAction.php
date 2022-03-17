@@ -14,8 +14,11 @@ class SellAuctionAction extends AuctionAction
     {
         $input = (array) $request->getParsedBody();
         $service = new AuctionService($this->logger, $this->auctionRepository
-            ,$this->commonRepository, $this->redisService);
-        $payload = array();
-        return $this->respondWithData($payload);
+            ,$this->userRepository ,$this->commonRepository, $this->redisService);
+        $payload = $service->sellAuctionItem($input);
+        $this->logger->info("success sell auction item action");
+        $message = $payload['message'];
+        unset($payload['message']);
+        return $this->respondWithData($payload, 200, null, $message);
     }
 }

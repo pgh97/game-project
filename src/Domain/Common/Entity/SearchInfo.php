@@ -8,8 +8,9 @@ class SearchInfo implements JsonSerializable
 {
     private int $accountCode;
     private int $userCode;
-    private int $itemCode;
-    private int $sort;
+    private int $itemCode=0;
+    private int $itemType=0;
+    private int $sort=0;
     private int $limit=10;
     private int $offset=0;
 
@@ -59,6 +60,22 @@ class SearchInfo implements JsonSerializable
     public function setItemCode(int $itemCode): void
     {
         $this->itemCode = $itemCode;
+    }
+
+    /**
+     * @return int
+     */
+    public function getItemType(): int
+    {
+        return $this->itemType;
+    }
+
+    /**
+     * @param int $itemType
+     */
+    public function setItemType(int $itemType): void
+    {
+        $this->itemType = $itemType;
     }
 
     /**

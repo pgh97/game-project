@@ -9,7 +9,7 @@ class MapItemData implements JsonSerializable
     private int $mapItemCode;
     private int $mapCode;
     private int $itemCode;
-    private int $itemType;
+    private int $itemType; //낚시대1, 낚시줄2, 바늘3, 미끼4, 릴5, 업데이트 부품6
     private int $itemProbability;
     private string $createDate;
 

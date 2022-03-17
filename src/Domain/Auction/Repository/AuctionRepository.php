@@ -3,6 +3,7 @@
 namespace App\Domain\Auction\Repository;
 
 use App\Domain\Auction\Entity\AuctionInfoData;
+use App\Domain\Auction\Entity\AuctionRanking;
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\User\Entity\UserFishInventoryInfo;
 
@@ -31,4 +32,28 @@ interface AuctionRepository
      * @return int
      */
     public function createAuctionInfo(UserFishInventoryInfo $userFishInventoryInfo): int;
+
+    /**
+     * @param AuctionInfoData $auctionInfoData
+     * @return int
+     */
+    public function deleteAuctionInfo(AuctionInfoData $auctionInfoData): int;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function modifyAuctionInfoList(SearchInfo $searchInfo): int;
+
+    /**
+     * @param AuctionRanking $ranking
+     * @return int
+     */
+    public function createAuctionRank(AuctionRanking $ranking): int;
+
+    /**
+     * @param AuctionRanking $ranking
+     * @return int
+     */
+    public function getAuctionRankList(AuctionRanking $ranking): array;
 }

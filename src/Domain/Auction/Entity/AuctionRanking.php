@@ -10,7 +10,7 @@ class AuctionRanking implements JsonSerializable
     private int $userCode;
     private int $moneyCode;
     private int $priceSum;
-    private int $auctionRank;
+    private int $auctionRank=0;
     private string $createDate;
 
     /**

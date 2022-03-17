@@ -46,14 +46,15 @@ return function (App $app) {
             $user->post('/inventory-item', Actions\User\GetUserInventoryAction::class);
             //$user->post('/inventory-item/change', Actions\User\ModifyUserInventoryAction::class);
             $user->post('/inventory-item/remove', Actions\User\DeleteUserInventoryAction::class);
-            //$user->post('/fishing-items', );
-            //$user->post('/fishing-item', );
+            $user->post('/fishing-items', Actions\User\GetUserFishingItemListAction::class);
+            $user->post('/fishing-item', Actions\User\GetUserFishingItemAction::class);
             $user->post('/fishing-item/change', Actions\User\CreateUserFishingItemAction::class);
             //$user->post('/fishing-item/change', );
             //$user->post('/fishing-item/remove', );
             $user->post('/gift-boxs', Actions\User\GetUserGiftBoxListAction::class);
             $user->post('/gift-box', Actions\User\GetUserGiftBoxAction::class);
-            //$user->post('/gift-box/change', );
+            $user->post('/gift-box/change', Actions\User\ModifyUserGiftBoxAction::class);
+            //$user->post('/gift-box/remove', );
         })->add(new JWTAuthMiddleware());
 
         $group->group('/map', function (Group $map){
@@ -74,8 +75,8 @@ return function (App $app) {
         $group->group('/auction', function (Group $auction){
             $auction->post('/items', Actions\Auction\GetAuctionListAction::class);
             $auction->post('/item', Actions\Auction\GetAuctionAction::class);
-            //$auction->post('/user-item/sell', );
-            //$auction->post('/ranking', );
+            $auction->post('/user-item/sell', Actions\Auction\SellAuctionAction::class);
+            $auction->post('/ranking', Actions\Auction\GetAuctionRankAction::class);
         })->add(new JWTAuthMiddleware());
 
         $group->group('/upgrade', function (Group $upgrade){
@@ -86,15 +87,17 @@ return function (App $app) {
         })->add(new JWTAuthMiddleware());
 
         $group->group('/repair', function (Group $repair){
-            //$repair->post('/user', );
-            //$repair->post('/item', );
+            $repair->post('/user', Actions\Repair\ModifyRepairUserAction::class);
+            $repair->post('/item', Actions\Repair\ModifyRepairItemAction::class);
         })->add(new JWTAuthMiddleware());
 
         $group->group('/quest', function (Group $quest){
             $quest->post('/items', Actions\Quest\GetQuestListAction::class);
             $quest->post('/item', Actions\Quest\GetQuestAction::class);
+            $quest->post('/user/items', Actions\Quest\GetQuestListAction::class)->add(new JWTAuthMiddleware());
+            $quest->post('/user/item', Actions\Quest\GetQuestAction::class)->add(new JWTAuthMiddleware());
             //$quest->post('/compensation', );
-        })->add(new JWTAuthMiddleware());
+        });
 
         $group->group('/shop', function (Group $shop){
             $shop->post('/items', Actions\Shop\GetShopListAction::class);

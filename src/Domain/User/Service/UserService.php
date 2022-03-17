@@ -16,7 +16,6 @@ use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
-use Couchbase\User;
 use Psr\Log\LoggerInterface;
 use Firebase\JWT\JWT;
 
@@ -61,6 +60,7 @@ class UserService extends BaseService
         $myUserInfo->setFatigue($levelInfo->getMaxFatigue());
         $myUserInfo->setUseInventoryCount($levelInfo->getInventoryCount());
 
+        //new 캐릭터 생성
         $userCode = $this->userRepository->createUserInfo($myUserInfo);
         if($userCode > 0){
             //기본 아이템 인벤토리 등록
@@ -129,13 +129,17 @@ class UserService extends BaseService
         $myChoiceItem->setFishingItemCode3($data->fishingItemCode3);
         $myChoiceItem->setFishingItemCode4($data->fishingItemCode4);
 
+        //채비 등록
         $myUserInfo = new UserInfo();
         $myUserInfo->setUserCode($data->decoded->data->userCode);
         $userinfo = $this->userRepository->getUserInfo($myUserInfo);
 
+        //채비 총카운트 조회
         $search = new SearchInfo();
         $search->setUserCode($data->decoded->data->userCode);
         $totalCount = $this->userRepository->getUserFishingItemListCnt($search);
+
+        //캐릭터별 채비 최대 등록 카운트 비교
         if($userinfo->getUseSaveItemCount() > $totalCount){
             $choiceCode = $this->userRepository->createUserFishingItem($myChoiceItem);
             $this->logger->info("create user fishing-item Service");
@@ -156,7 +160,8 @@ class UserService extends BaseService
             $myUserInfo->setUserCode($data->userCode);
         }
         $myUserInfo->setAccountCode($data->decoded->data->accountCode);
-
+        
+        //캐릭터 정보 조회
         $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         $this->logger->info("get user service");
         return $userInfo->toJson();
@@ -204,6 +209,12 @@ class UserService extends BaseService
                 $this->saveInCache($weatherHistoryInfo->getWeatherHistoryCode(), $weatherHistoryInfo, self::WEATHER_REDIS_KEY);
             }
 
+            //인벤토리 물고기 신선도(내구도) 일괄 수정
+            $myInventoryInfo = new UserInventoryInfo();
+            $myInventoryInfo->setUserCode($data->userCode);
+            $myInventoryInfo->setItemType(8);
+            $this->userRepository->modifyUserInventoryFishDurability($myInventoryInfo);
+
             $token = [
                 'iss' => "http://localhost:8888",
                 'iat' => time(),
@@ -233,6 +244,7 @@ class UserService extends BaseService
         $search->setLimit($data->limit);
         $search->setOffset($data->offset);
 
+        //캐릭터 목록 조회
         $userInfoArray = $this->userRepository->getUserInfoList($search);
         $userInfoArrayCnt = $this->userRepository->getUserInfoListCnt($search);
 
@@ -264,6 +276,7 @@ class UserService extends BaseService
         $myUserInfo->setMoneyPearl($data->moneyPearl);
         $myUserInfo->setFatigue($data->fatigue);
 
+        //캐릭터 정보 수정
         $this->userRepository->modifyUserInfo($myUserInfo);
         $result = $this->userRepository->getUserInfo($myUserInfo);
 
@@ -282,7 +295,7 @@ class UserService extends BaseService
         $myWeatherInfo->setUserCode($data->decoded->data->userCode);
         //캐릭터별 날씨 정보
         $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);*/
-
+        //캐릭터별 날씨 정보 (redis cache)
         if(self::isRedisEnabled()==true){
             $weatherHistoryInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, $data->decoded->data->userCode,self::WEATHER_REDIS_KEY);
         }else{
@@ -297,6 +310,7 @@ class UserService extends BaseService
         $weatherCode->setWeatherCode($weatherHistoryInfo->getWeatherCode());
         $weatherInfo = $this->commonRepository->getWeatherInfo($weatherCode);
 
+        //날씨의 풍량과 온도 랜덤 변경
         $weatherHistoryInfo = $this->weatherChange($weatherInfo, $weatherHistoryInfo);
         $this->userRepository->modifyUserWeatherHistory($weatherHistoryInfo);
         $result = $this->userRepository->getUserWeatherHistory($weatherHistoryInfo);
@@ -312,6 +326,7 @@ class UserService extends BaseService
     public function getUserWeatherInfo(array $input): UserWeatherHistory
     {
         $data = json_decode((string) json_encode($input), false);
+        // 날씨 정보 조회
         if(self::isRedisEnabled()==true){
             $weatherInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, $data->decoded->data->userCode,self::WEATHER_REDIS_KEY);
         }else{
@@ -331,6 +346,7 @@ class UserService extends BaseService
         $myUserShipInfo = new UserShipInfo();
         $myUserShipInfo->setUserCode($data->decoded->data->userCode);
 
+        //캐릭터 보로롱24 정보 조회
         $userShipInfo = $this->userRepository->getUserShipInfo($myUserShipInfo);
         $this->logger->info("get user ship service");
         return $userShipInfo;
@@ -344,6 +360,7 @@ class UserService extends BaseService
         $search->setLimit($data->limit);
         $search->setOffset($data->offset);
 
+        //캐릭터 인벤토리 목록 조회
         $userInventoryArray = $this->userRepository->getUserInventoryList($search);
         $userInventoryArrayCnt = $this->userRepository->getUserInventoryListCnt($search);
 
@@ -365,6 +382,7 @@ class UserService extends BaseService
         $myUserInventory->setUserCode($data->decoded->data->userCode);
         $myUserInventory->setInventoryCode($data->InventoryCode);
 
+        //캐릭터 인벤토리 상세 조회
         $userInventory = $this->userRepository->getUserInventory($myUserInventory);
         $this->logger->info("get user inventory service");
         return $userInventory;
@@ -379,7 +397,9 @@ class UserService extends BaseService
         }else{
             $myUserInfo->setUserCode($data->userCode);
         }
+        //캐릭터 삭제
         $resultCode = $this->userRepository->deleteUserInfo($myUserInfo);
+        //redis 삭제 추가해야함.
         $this->logger->info("delete user info service");
         return $resultCode;
     }
@@ -393,6 +413,7 @@ class UserService extends BaseService
         }else{
             $myUserInventory->setUserCode($data->userCode);
         }
+        //캐릭터 인벤토리 삭제
         $myUserInventory->setInventoryCode($data->inventoryCode);
         $resultCode = $this->userRepository->deleteUserInventory($myUserInventory);
         $this->logger->info("delete user inventory service");
@@ -406,6 +427,7 @@ class UserService extends BaseService
         $myBoxInfo->setUserCode($data->decoded->data->userCode);
         $myBoxInfo->setBoxCode($data->boxCode);
 
+        //캐릭터 선물함(우편함) 상세 조회
         $boxInfo = $this->userRepository->getUserGiftBoxInfo($myBoxInfo);
         $this->logger->info("get user gift box service");
         return $boxInfo;
@@ -419,6 +441,7 @@ class UserService extends BaseService
         $search->setLimit($data->limit);
         $search->setOffset($data->offset);
 
+        //캐릭터 선물함(우편함) 목록 조회
         $boxArray = $this->userRepository->getUserGiftBoxList($search);
         $boxArrayCnt = $this->userRepository->getUserGiftBoxListCnt($search);
         $this->logger->info("get list user gift box service");
@@ -426,6 +449,124 @@ class UserService extends BaseService
             'userGiftBoxList' => $boxArray,
             'totalCount' => $boxArrayCnt,
         ];
+    }
+
+    public function getUserFishingItem(array $input): UserChoiceItemInfo
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myChoiceInfo = new UserChoiceItemInfo();
+        $myChoiceInfo->setUserCode($data->decoded->data->userCode);
+        $myChoiceInfo->setChoiceCode($data->choiceCode);
+
+        //캐릭터 채비 상세 조회
+        $choiceInfo = $this->userRepository->getUserFishingItem($myChoiceInfo);
+        $this->logger->info("get user fishing item service");
+        return $choiceInfo;
+    }
+
+    public function getUserFishingItemList(array $input): array
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $search = new SearchInfo();
+        $search->setUserCode($data->decoded->data->userCode);
+        $search->setLimit($data->limit);
+        $search->setOffset($data->offset);
+
+        //캐릭터 채비 목록 조회
+        $fishingItemArray = $this->userRepository->getUserFishingItemList($search);
+        $fishingItemArrayCnt = $this->userRepository->getUserFishingItemListCnt($search);
+        $this->logger->info("get list user fishing item service");
+        return [
+            'userFishingItemList' => $fishingItemArray,
+            'totalCount' => $fishingItemArrayCnt,
+        ];
+    }
+
+    public function modifyUserGiftBox(array $input):array
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myBoxInfo = new UserGitfBoxInfo();
+        $myBoxInfo->setUserCode($data->decoded->data->userCode);
+
+        if(self::isRedisEnabled() === true){
+            $userInfo = $this->getOneUserCache($data->decoded->data->userCode, self::USER_REDIS_KEY);
+        }else{
+            $myUserInfo = new UserInfo();
+            $myUserInfo->setUserCode($data->decoded->data->userCode);
+            $userInfo = $this->userRepository->getUserInfo($myUserInfo);
+        }
+
+        //인벤토리 카운트와 선물 아이템 카운트
+        $search = new SearchInfo();
+        $search->setUserCode($data->decoded->data->userCode);
+        $inventoryCnt = $this->userRepository->getUserInventoryListCnt($search);
+
+        $search->setItemType(1);
+        $boxCnt = $this->userRepository->getUserGiftBoxListCnt($search);
+
+        if(!empty($data->boxCode)){
+            $myBoxInfo->setBoxCode($data->boxCode);
+            //선물
+            $boxInfo = $this->userRepository->getUserGiftBoxInfo($myBoxInfo);
+            if($boxInfo->getReadStatus() == 0){
+                //캐릭터 재화 추가
+                if($boxInfo->getItemType()==1){
+                    if($boxInfo->getItemCode()==1){
+                        $userInfo->setMoneyGold($userInfo->getMoneyGold()+$boxInfo->getItemCount());
+                    }elseif ($boxInfo->getItemCode()==2){
+                        $userInfo->setMoneyPearl($userInfo->getMoneyPearl()+$boxInfo->getItemCount());
+                    }else{
+                        $userInfo->setFatigue($userInfo->setFatigue($userInfo->getFatigue()+$boxInfo->getItemCount()));
+                    }
+                    $this->userRepository->modifyUserInfo($userInfo);
+                }else{
+                    //인벤토리 등록
+                    $myInventory = new UserInventoryInfo();
+                    $myInventory->setUserCode($boxInfo->getUserCode());
+                    $myInventory->setItemCode($boxInfo->getItemCode());
+                    $myInventory->setItemType($boxInfo->getItemType());
+                    $myInventory->setUpgradeCode(0);
+                    $myInventory->setUpgradeLevel(0);
+                    $myInventory->setItemCount($boxInfo->getItemCount());
+                    $myInventory->setItemDurability(1);
+                    $this->userRepository->createUserInventoryInfo($myInventory);
+                }
+                //선물함(우편함) 읽음으로 수정
+                $this->userRepository->modifyUserGiftBoxStatus($boxInfo);
+                if (self::isRedisEnabled() === true) {
+                    $user = $this->userRepository->getUserInfo($userInfo);
+                    $this->saveInCache($user->getUserCode(), $user, self::USER_REDIS_KEY);
+                }
+                return [
+                    'message' => "선물을 받았습니다.",
+                ];
+            }else{
+                return [
+                    'message' => "선물 이미 받았습니다.",
+                ];
+            }
+        }else{
+            $myBoxInfo->setBoxCode(0);
+            if($userInfo->getUseInventoryCount() >= ($inventoryCnt+$boxCnt)){
+                //캐릭터 재화 추가
+                $this->userRepository->modifyUserInfoGiftBox($myBoxInfo);
+                //인벤토리 등록
+                $this->userRepository->createUserGiftBoxToInventory($myBoxInfo);
+                //선물함(우편함) 읽음으로 수정
+                $this->userRepository->modifyUserGiftBoxStatus($myBoxInfo);
+                if (self::isRedisEnabled() === true) {
+                    $user = $this->userRepository->getUserInfo($userInfo);
+                    $this->saveInCache($user->getUserCode(), $user, self::USER_REDIS_KEY);
+                }
+                return [
+                    'message' => "선물들을 모두 받았습니다.",
+                ];
+            }else{
+                return [
+                    'message' => "선물(아이템)을 받으면 인벤토리가 넘칩니다. 인벤토리를 정리해주세요.",
+                ];
+            }
+        }
     }
 
     protected function saveInCache(int $userCode, object $user, string $redisKey): void
@@ -501,5 +642,32 @@ class UserService extends BaseService
             $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
         }
         return $weatherInfo;
+    }
+
+    protected function getOneUserCache(int $code, string $redisKeys): UserInfo
+    {
+        $redisKey = sprintf($redisKeys, $code);
+        $key = $this->redisService->generateKey($redisKey);
+        if ($this->redisService->exists($key)) {
+            $model = json_decode((string)json_encode($this->redisService->get($key)), false);
+
+            $userInfo = new UserInfo();
+            $userInfo->setAccountCode($model->accountCode);
+            $userInfo->setUserCode($model->userCode);
+            $userInfo->setUserNickNm($model->userNickNm);
+            $userInfo->setLevelCode($model->levelCode);
+            $userInfo->setUserExperience($model->userExperience);
+            $userInfo->setMoneyGold($model->moneyGold);
+            $userInfo->setMoneyPearl($model->moneyPearl);
+            $userInfo->setFatigue($model->fatigue);
+            $userInfo->setUseInventoryCount($model->useInventoryCount);
+            $userInfo->setUseSaveItemCount($model->useSaveItemCount);
+            $userInfo->setCreateDate($model->createDate);
+        } else {
+            $myUserInfo = new UserInfo();
+            $myUserInfo->setUserCode($code);
+            $userInfo = $this->userRepository->getUserInfo($myUserInfo);
+        }
+        return $userInfo;
     }
 }

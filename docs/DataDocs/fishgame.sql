@@ -426,7 +426,7 @@ create table auction_ranking (
     user_code int not null,
     money_code int not null,
     price_sum int not null,
-    auction_rank int not null,
+    auction_rank int null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP,
     primary key(week_date, user_code)
 );
@@ -439,4 +439,11 @@ create table auction_info_data (
     auction_price int not null,
     change_time int not null,
     create_date timestamp not null DEFAULT CURRENT_TIMESTAMP
+);
+
+create table user_quest_info (
+    quest_code int not null,
+    user_code int not null,
+    create_date timestamp not null DEFAULT CURRENT_TIMESTAMP,
+    primary key(quest_code, user_code)
 );

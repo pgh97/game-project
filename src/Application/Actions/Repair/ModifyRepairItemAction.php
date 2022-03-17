@@ -13,9 +13,12 @@ class ModifyRepairItemAction extends RepairAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new RepairService($this->logger, $this->repairRepository
+        $service = new RepairService($this->logger, $this->repairRepository, $this->userRepository
             ,$this->commonRepository, $this->redisService);
-        $payload = array();
-        return $this->respondWithData($payload);
+        $payload = $service->modifyRepairItem($input);
+        $this->logger->info("update item repair action");
+        $message = $payload['message'];
+        unset($payload['message']);
+        return $this->respondWithData($payload, 200, null, $message);
     }
 }

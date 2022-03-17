@@ -13,7 +13,7 @@ class GetShopAction extends ShopAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new ShopService($this->logger, $this->shopRepository
+        $service = new ShopService($this->logger, $this->shopRepository, $this->userRepository
             ,$this->commonRepository, $this->redisService);
         $payload = array();
         $payload['shopInfo'] = $service->getShopInfo($input);

@@ -13,9 +13,12 @@ class ModifyUpgradeShipItemActon extends UpgradeAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new UpgradeService($this->logger, $this->upgradeRepository
+        $service = new UpgradeService($this->logger, $this->upgradeRepository, $this->userRepository
             ,$this->commonRepository, $this->redisService);
-        $payload = array();
-        return $this->respondWithData($payload);
+        $payload = $service->modifyUpgradeShipItem($input);
+        $this->logger->info("upgrade ship item action");
+        $message = $payload['message'];
+        unset($payload['message']);
+        return $this->respondWithData($payload, 200, null, $message);
     }
 }

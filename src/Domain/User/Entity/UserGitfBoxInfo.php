@@ -9,7 +9,7 @@ class UserGitfBoxInfo implements JsonSerializable
     private int $boxCode;
     private int $userCode;
     private int $itemCode;
-    private int $itemType; //보상아이템타입(재화 1(골드, 진주),채비 2 바늘, 채비 3 미끼)
+    private int $itemType; //보상아이템타입(1 : 재화 (골드, 진주), 2 : 채비  바늘, 3 : 채비  미끼)
     private int $itemCount;
     private int $readStatus;
     private string $createDate;

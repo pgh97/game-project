@@ -14,7 +14,8 @@ class GetMapListAction extends MapAction
     {
         $input = (array) $request->getParsedBody();
         $service = new MapService($this->logger, $this->mapRepository, $this->userRepository
-            ,$this->auctionRepository ,$this->fishingRepository ,$this->commonRepository, $this->redisService);
+            ,$this->auctionRepository ,$this->fishingRepository ,$this->questRepository
+            ,$this->commonRepository, $this->redisService);
         $payload = $service->getMapInfoList($input);
         $this->logger->info("map info list service");
         return $this->respondWithData($payload);

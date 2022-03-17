@@ -34,10 +34,16 @@ class QuestService extends BaseService
     {
         $data = json_decode((string) json_encode($input), false);
         $myQuestInfo = new QuestInfoData();
-        //$myQuestInfo->setUserCode($data->decoded->data->userCode);
         $myQuestInfo->setQuestCode($data->questCode);
+        //퀘스트 상세 조회
+        if(!empty($data->decoded->data->userCode)){
+            $myQuestInfo->setUserCode($data->decoded->data->userCode);
+            $questInfo = $this->questRepository->getUserQuestInfo($myQuestInfo);
+        }else{
+            $questInfo = $this->questRepository->getQuestInfo($myQuestInfo);
+        }
 
-        $questInfo = $this->questRepository->getQuestInfo($myQuestInfo);
+        $myQuestInfo->setQuestCode($data->questCode);
         $this->logger->info("get quest info service");
         return $questInfo;
     }
@@ -46,12 +52,18 @@ class QuestService extends BaseService
     {
         $data = json_decode((string) json_encode($input), false);
         $search = new SearchInfo();
-        $search->setUserCode($data->decoded->data->userCode);
         $search->setLimit($data->limit);
         $search->setOffset($data->offset);
 
-        $questArray = $this->questRepository->getQuestInfoList($search);
-        $questArrayCnt = $this->questRepository->getQuestInfoListCnt($search);
+        //퀘스트 목록 조회
+        if(!empty($data->decoded->data->userCode)){
+            $search->setUserCode($data->decoded->data->userCode);
+            $questArray = $this->questRepository->getUserQuestInfoList($search);
+            $questArrayCnt = $this->questRepository->getUserQuestInfoListCnt($search);
+        }else{
+            $questArray = $this->questRepository->getQuestInfoList($search);
+            $questArrayCnt = $this->questRepository->getQuestInfoListCnt($search);
+        }
         $this->logger->info("get list quest info service");
         return [
             'questList' => $questArray,

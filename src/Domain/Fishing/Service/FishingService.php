@@ -14,11 +14,14 @@ use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Map\Entity\MapInfoData;
 use App\Domain\Map\Entity\MapTideData;
 use App\Domain\Map\Repository\MapRepository;
+use App\Domain\Quest\Entity\QuestInfoData;
+use App\Domain\Quest\Repository\QuestRepository;
 use App\Domain\User\Entity\UserChoiceItemInfo;
 use App\Domain\User\Entity\UserFishInventoryInfo;
 use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
+use App\Domain\User\Entity\UserQuestInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
 use Psr\Log\LoggerInterface;
@@ -28,6 +31,7 @@ class FishingService extends BaseService
     protected FishingRepository $fishingRepository;
     protected UserRepository $userRepository;
     protected MapRepository $mapRepository;
+    protected QuestRepository $questRepository;
     protected CommonRepository $commonRepository;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
@@ -42,6 +46,7 @@ class FishingService extends BaseService
         ,FishingRepository $fishingRepository
         ,UserRepository $userRepository
         ,MapRepository $mapRepository
+        ,QuestRepository $questRepository
         ,CommonRepository $commonRepository
         ,RedisService $redisService)
     {
@@ -49,6 +54,7 @@ class FishingService extends BaseService
         $this->fishingRepository = $fishingRepository;
         $this->userRepository = $userRepository;
         $this->mapRepository = $mapRepository;
+        $this->questRepository = $questRepository;
         $this->commonRepository = $commonRepository;
         $this->redisService = $redisService;
     }
@@ -60,6 +66,7 @@ class FishingService extends BaseService
         $myFishInventory->setUserCode($data->decoded->data->userCode);
         $myFishInventory->setFishInventoryCode($data->fishInventoryCode);
 
+        //잡은 물고기 상세 조회
         $fishInventory = $this->fishingRepository->getUserFishInventory($myFishInventory);
         $this->logger->info("get fish inventory info service");
         return $fishInventory;
@@ -70,10 +77,11 @@ class FishingService extends BaseService
         $data = json_decode((string) json_encode($input), false);
         $search = new SearchInfo();
         $search->setUserCode($data->decoded->data->userCode);
-        $search->setItemCode($data->itemCode);
+        $search->setItemCode($data->mapCode);
         $search->setLimit($data->limit);
         $search->setOffset($data->offset);
 
+        //잡은 물고기 목록 조회
         $fishInventoryArray = $this->fishingRepository->getUserFishInventoryList($search);
         $fishInventoryArrayCnt = $this->fishingRepository->getUserFishInventoryListCnt($search);
         $this->logger->info("get list fish inventory info service");
@@ -145,6 +153,7 @@ class FishingService extends BaseService
         $myUserInventory->setInventoryCode($choiceItem->getFishingItemCode4());
         $inventoryItem4 = $this->userRepository->getUserInventory($myUserInventory);
 
+        //필수 채비의 내구도 or 카운트 비교
         if($inventoryRod->getItemDurability() >= $mapInfo->getPerDurability()
             && $inventoryLine->getItemDurability() >= $mapInfo->getPerDurability()
             && $inventoryNeedle->getItemCount() >= 1
@@ -163,6 +172,9 @@ class FishingService extends BaseService
             $search->setItemCode($data->mapCode);
             $search->setUserCode($data->decoded->data->userCode);
             $fishList = $this->mapRepository->getMapFishList($search);
+
+            //지역별 부품 리스트
+            //물고기 코드 리스트에 99를 넣어서 확률 재단(추가 개발)
 
             //조수간만차 계산
             date_default_timezone_set('Asia/Seoul');
@@ -296,6 +308,7 @@ class FishingService extends BaseService
                 }
             }
 
+            //등급별 물고기 조회
             $fishGradeInfo = new FishGradeData();
             $fishGradeInfo->setFishCode($fishInfo->getFishCode());
             $fishGradeInfo->setMinValue($this->Percent_draw($sizeArray, $percentArray)*$fishInfo->getFishProbability());
@@ -304,6 +317,7 @@ class FishingService extends BaseService
             $fishInventoryCnt = $this->fishingRepository->getUserFishInventoryListCnt($search);
             $inventoryCnt = $this->userRepository->getUserInventoryListCnt($search);
 
+            //캐릭터 인벤토리 최대 카운트와 비교
             if($userInfo->getUseInventoryCount() > ($inventoryCnt+$fishInventoryCnt)){
                 $userFishInventoryInfo = new UserFishInventoryInfo();
                 $userFishInventoryInfo->setUserCode($data->decoded->data->userCode);
@@ -361,11 +375,28 @@ class FishingService extends BaseService
                     $userInfo->setUseInventoryCount($levelInfo->getInventoryCount());
                     $userInfo->setFatigue($levelInfo->getMaxFatigue());
 
-                    $boxInfo = new UserGitfBoxInfo();
-                    $boxInfo->setUserCode($userInfo->getUserCode());
-                    $boxInfo->setQuestType(1);
-                    $boxInfo->setQuestGoal($userInfo->getLevelCode());
-                    $this->userRepository->createUserGiftBox($boxInfo);
+                    //지역 퀘스트 상세 조회
+                    $myQuestInfo = new QuestInfoData();
+                    $myQuestInfo->setQuestType(1);
+                    $myQuestInfo->setQuestGoal($userInfo->getLevelCode());
+                    $questInfo = $this->questRepository->getQuestInfoGoal($myQuestInfo);
+                    //캐릭터 퀘스트 여부
+                    $userQuestInfo = new UserQuestInfo();
+                    $userQuestInfo->setUserCode($userInfo->getUserCode());
+                    $userQuestInfo->setQuestCode($questInfo->getQuestCode());
+                    $userQuestCnt = $this->userRepository->getUserQuestInfoCnt($userQuestInfo);
+
+                    if($userQuestCnt == 0){
+                        //선물함(우편함) 등록
+                        $boxInfo = new UserGitfBoxInfo();
+                        $boxInfo->setUserCode($userInfo->getUserCode());
+                        $boxInfo->setQuestType(1);
+                        $boxInfo->setQuestGoal($userInfo->getLevelCode());
+                        $this->userRepository->createUserGiftBox($boxInfo);
+
+                        //캐릭터 퀘스트 등록
+                        $this->userRepository->createUserQuestInfo($userQuestInfo);
+                    }
 
                     $message = "레벨 ".$userInfo->getLevelCode()."로 레벨업했습니다!";
                 }
@@ -402,6 +433,7 @@ class FishingService extends BaseService
         $userFishInventory = new UserFishInventoryInfo();
         $userFishInventory->setUserCode($data->decoded->data->userCode);
         $userFishInventory->setFishInventoryCode($data->fishInventoryCode);
+        //잡은 물고기 삭제
         $result = $this->fishingRepository->deleteUserFishInventory($userFishInventory);
         if($result>0){
             return [

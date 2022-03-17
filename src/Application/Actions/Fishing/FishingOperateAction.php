@@ -14,7 +14,7 @@ class FishingOperateAction extends FishingAction
     {
         $input = (array) $request->getParsedBody();
         $service = new FishingService($this->logger, $this->fishingRepository, $this->userRepository
-            ,$this->mapRepository ,$this->commonRepository, $this->redisService);
+            ,$this->mapRepository ,$this->questRepository ,$this->commonRepository, $this->redisService);
         $result = $service->fishingOperate($input);
         $payload = array();
         $payload['fishInfo'] = $result['fishInfo'];

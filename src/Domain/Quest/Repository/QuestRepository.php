@@ -14,6 +14,12 @@ interface QuestRepository
     public function getQuestInfo(QuestInfoData $questInfoData): QuestInfoData;
 
     /**
+     * @param QuestInfoData $questInfoData
+     * @return QuestInfoData
+     */
+    public function getQuestInfoGoal(QuestInfoData $questInfoData): QuestInfoData;
+
+    /**
      * @param SearchInfo $searchInfo
      * @return array
      */
@@ -24,4 +30,22 @@ interface QuestRepository
      * @return int
      */
     public function getQuestInfoListCnt(SearchInfo $searchInfo): int;
+
+    /**
+     * @param QuestInfoData $questInfoData
+     * @return QuestInfoData
+     */
+    public function getUserQuestInfo(QuestInfoData $questInfoData): QuestInfoData;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return array
+     */
+    public function getUserQuestInfoList(SearchInfo $searchInfo): array;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function getUserQuestInfoListCnt(SearchInfo $searchInfo): int;
 }

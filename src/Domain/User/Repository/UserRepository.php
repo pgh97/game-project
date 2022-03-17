@@ -9,6 +9,7 @@ use App\Domain\User\Entity\UserFishInventoryInfo;
 use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
+use App\Domain\User\Entity\UserQuestInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 
@@ -165,6 +166,12 @@ interface UserRepository
     public function deleteUserInventory(UserInventoryInfo $inventoryInfo): int;
 
     /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function deleteUserInventoryFish(SearchInfo $searchInfo): int;
+
+    /**
      * @param UserInfo $userInfo
      * @return int
      */
@@ -193,4 +200,40 @@ interface UserRepository
      * @return UserGitfBoxInfo
      */
     public function getUserGiftBoxInfo(UserGitfBoxInfo $boxInfo): UserGitfBoxInfo;
+
+    /**
+     * @param UserInventoryInfo $inventoryInfo
+     * @return int
+     */
+    public function modifyUserInventoryFishDurability(UserInventoryInfo $inventoryInfo): int;
+
+    /**
+     * @param UserInventoryInfo $inventoryInfo
+     * @return int
+     */
+    public function createUserQuestInfo(UserQuestInfo $userQuestInfo): int;
+
+    /**
+     * @param UserQuestInfo $userQuestInfo
+     * @return int
+     */
+    public function getUserQuestInfoCnt(UserQuestInfo $userQuestInfo): int;
+
+    /**
+     * @param UserGitfBoxInfo $boxInfo
+     * @return int
+     */
+    public function createUserGiftBoxToInventory(UserGitfBoxInfo $boxInfo): int;
+
+    /**
+     * @param UserGitfBoxInfo $boxInfo
+     * @return int
+     */
+    public function modifyUserGiftBoxStatus(UserGitfBoxInfo $boxInfo): int;
+
+    /**
+     * @param UserGitfBoxInfo $boxInfo
+     * @return int
+     */
+    public function modifyUserInfoGiftBox(UserGitfBoxInfo $boxInfo): int;
 }

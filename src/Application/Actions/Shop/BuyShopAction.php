@@ -13,9 +13,12 @@ class BuyShopAction extends ShopAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new ShopService($this->logger, $this->shopRepository
+        $service = new ShopService($this->logger, $this->shopRepository, $this->userRepository
             ,$this->commonRepository, $this->redisService);
-        $payload = array();
-        return $this->respondWithData($payload);
+        $payload = $service->buyShopInfo($input);
+        $this->logger->info("buy shop info action");
+        $message = $payload['message'];
+        unset($payload['message']);
+        return $this->respondWithData($payload, 200, null, $message);
     }
 }

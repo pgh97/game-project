@@ -11,9 +11,12 @@ use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Map\Entity\MapInfoData;
 use App\Domain\Map\Entity\MapTideData;
 use App\Domain\Map\Repository\MapRepository;
+use App\Domain\Quest\Entity\QuestInfoData;
+use App\Domain\Quest\Repository\QuestRepository;
 use App\Domain\User\Entity\UserFishInventoryInfo;
 use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
+use App\Domain\User\Entity\UserQuestInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
@@ -26,6 +29,7 @@ class MapService extends BaseService
     protected CommonRepository $commonRepository;
     protected AuctionRepository $auctionRepository;
     protected FishingRepository $fishingRepository;
+    protected QuestRepository $questRepository;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
 
@@ -39,6 +43,7 @@ class MapService extends BaseService
         ,UserRepository $userRepository
         ,AuctionRepository $auctionRepository
         ,FishingRepository $fishingRepository
+        ,QuestRepository $questRepository
         ,CommonRepository $commonRepository
         ,RedisService $redisService)
     {
@@ -47,6 +52,7 @@ class MapService extends BaseService
         $this->userRepository = $userRepository;
         $this->auctionRepository = $auctionRepository;
         $this->fishingRepository = $fishingRepository;
+        $this->questRepository = $questRepository;
         $this->commonRepository = $commonRepository;
         $this->redisService = $redisService;
     }
@@ -57,6 +63,7 @@ class MapService extends BaseService
         $myMapInfo = new MapInfoData();
         $myMapInfo->setMapCode($data->mapCode);
 
+        //지역 상세 조회
         $mapInfo = $this->mapRepository->getMapInfo($myMapInfo) ;
         $this->logger->info("map info service");
         return $mapInfo;
@@ -69,6 +76,7 @@ class MapService extends BaseService
         $search->setLimit($data->limit);
         $search->setOffset($data->offset);
 
+        //지역 목록 조회
         $mapArray = $this->mapRepository->getMapInfoList($search);
         $mapArrayCnt = $this->mapRepository->getMapInfoListCnt($search);
 
@@ -111,20 +119,24 @@ class MapService extends BaseService
         }
 
         $this->logger->info("map leve port service");
+        //출항 가능한 최소 레벨 충족 여부 비교
         if($userInfo->getLevelCode() >= $mapInfo->getMinLevel()){
             if($userInfo->getFatigue() >= $mapInfo->getDeparturePrice()
                 && $shipInfo->getDurability() >= $mapInfo->getDepartureTime() * $mapInfo->getPerDurability()
                 && $shipInfo->getFuel() >= $mapInfo->getDistance()*2){
 
+                //캐릭터 피로도 감소
                 $userInfo->setFatigue($userInfo->getFatigue()-$mapInfo->getDeparturePrice());
                 $this->userRepository->modifyUserInfo($userInfo);
                 $userInfo = $this->userRepository->getUserInfo($userInfo);
 
+                //보로롱24 내구도, 피로 감소 (풍량의 정상범위에 따라 내구도 연로 추가 감소 로직X) 
                 $myShipInfo->setDurability($shipInfo->getDurability() - ($mapInfo->getDepartureTime() * $mapInfo->getPerDurability()));
                 $myShipInfo->setFuel($shipInfo->getFuel() - ($mapInfo->getDistance()*2));
                 $this->userRepository->modifyUserShip($myShipInfo);
                 $shipInfo = $this->userRepository->getUserShipInfo($myShipInfo);
 
+                //날씨 히스토리 정보 수정
                 $weatherInfo->setMapCode($mapInfo->getMapCode());
                 $weatherInfo->setWindUpdateDate("");
                 $weatherInfo->setTemperatureUpdateDate("");
@@ -227,12 +239,27 @@ class MapService extends BaseService
         $search->setItemCode($mapInfo->getMapCode());
         $dictionaryCnt = $this->userRepository->getUserFishDictionaryCnt($search);
 
-        if($dictionaryCnt == $mapInfo->getMapFishCount()){
+        //지역 퀘스트 상세 조회
+        $myQuestInfo = new QuestInfoData();
+        $myQuestInfo->setQuestType(2);
+        $myQuestInfo->setQuestGoal($mapInfo->getMapCode());
+        $questInfo = $this->questRepository->getQuestInfoGoal($myQuestInfo);
+        //캐릭터 퀘스트 여부
+        $userQuestInfo = new UserQuestInfo();
+        $userQuestInfo->setUserCode($userInfo->getUserCode());
+        $userQuestInfo->setQuestCode($questInfo->getQuestCode());
+        $userQuestCnt = $this->userRepository->getUserQuestInfoCnt($userQuestInfo);
+
+        if($dictionaryCnt == $mapInfo->getMapFishCount() && $userQuestCnt == 0){
+            //선물함(우편함) 등록
             $boxInfo = new UserGitfBoxInfo();
             $boxInfo->setUserCode($userInfo->getUserCode());
             $boxInfo->setQuestType(2);
             $boxInfo->setQuestGoal($mapInfo->getMapCode());
             $this->userRepository->createUserGiftBox($boxInfo);
+
+            //캐릭터 퀘스트 등록
+            $this->userRepository->createUserQuestInfo($userQuestInfo);
         }
 
         if (self::isRedisEnabled() === true) {
@@ -273,6 +300,7 @@ class MapService extends BaseService
             $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
         }
 
+        //분당 보로롱24 내구도 감소
         date_default_timezone_set('Asia/Seoul');
         $currentTime = date("Y-m-d H:i:s");
         $timeDif = strtotime($currentTime) - strtotime($weatherInfo->getMapUpdateDate());

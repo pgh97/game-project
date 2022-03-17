@@ -36,7 +36,7 @@ class AccountInfoService
         $myAccountInfo->setCountryCode($data->countryCode);
         $myAccountInfo->setLanguageCode($data->languageCode);
 
-        /** @var TYPE_NAME $accountInfo */
+        //회원 생성
         $accountInfo = $this->accountInfoRepository->createAccountInfo($myAccountInfo);
         $this->logger->info("create account service");
         return $accountInfo;
@@ -61,7 +61,7 @@ class AccountInfoService
         // 2. 비밀번호 암호화 방법
         $myAccountInfo->setAccountPw(hash('sha256', $data->accountPw));
 
-        /** @var TYPE_NAME $accountInfo */
+        //회원로그인
         $accountInfo = $this->accountInfoRepository->loginAccountInfo($myAccountInfo);
 
         // 1. 비밀번호 암호화 방법 (복호화가 안되기 때문에 비교를 해야함)
@@ -100,6 +100,7 @@ class AccountInfoService
         $myAccountInfo = new AccountInfo();
         $myAccountInfo->setAccountCode($data->decoded->data->accountCode);
 
+        //회원 정보 조회
         $accountInfo = $this->accountInfoRepository->getAccountInfo($myAccountInfo);
         $this->logger->info("delete account info service");
         return $accountInfo;
@@ -121,6 +122,7 @@ class AccountInfoService
             $myAccountInfo->setCountryCode($data->countryCode);
         }
 
+        //회원 정보 수정
         $this->accountInfoRepository->modifyAccountInfo($myAccountInfo);
         $accountInfo = $this->accountInfoRepository->getAccountInfo($myAccountInfo);
         $this->logger->info("update account service");
@@ -137,6 +139,7 @@ class AccountInfoService
         $myAccountDeleteInfo->setAccountCode($data->decoded->data->accountCode);
         $myAccountDeleteInfo->setDeleteType($data->deleteType);
 
+        //회원 탈퇴
         $resultCode = $this->accountInfoRepository->createAccountDeleteInfo($myAccountDeleteInfo);
         if($resultCode > 0){
             $this->accountInfoRepository->deleteAccountInfo($myAccountInfo);

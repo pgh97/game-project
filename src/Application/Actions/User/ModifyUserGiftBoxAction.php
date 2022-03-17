@@ -1,22 +1,22 @@
 <?php
 
-namespace App\Application\Actions\Shop;
+namespace App\Application\Actions\User;
 
 use App\Domain\DomainException\DomainRecordNotFoundException;
-use App\Domain\Shop\Service\ShopService;
+use App\Domain\User\Service\UserService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpBadRequestException;
 
-class SellShopAction extends ShopAction
+class ModifyUserGiftBoxAction extends UserAction
 {
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new ShopService($this->logger, $this->shopRepository, $this->userRepository
+        $service = new UserService($this->logger, $this->userRepository
             ,$this->commonRepository, $this->redisService);
-        $payload = $service->sellShopInfo($input);
-        $this->logger->info("sell user inventory item action");
+        $payload = $service->modifyUserGiftBox($input);
+        $this->logger->info("update user gift box item action");
         $message = $payload['message'];
         unset($payload['message']);
         return $this->respondWithData($payload, 200, null, $message);

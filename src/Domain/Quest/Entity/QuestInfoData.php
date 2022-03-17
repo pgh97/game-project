@@ -2,7 +2,6 @@
 
 namespace App\Domain\Quest\Entity;
 
-use JetBrains\PhpStorm\Internal\TentativeType;
 use JsonSerializable;
 
 class QuestInfoData implements JsonSerializable
@@ -11,6 +10,7 @@ class QuestInfoData implements JsonSerializable
     private int $questType; //레벨업: 1, 도감: 2
     private int $questGoal;
     private string $createDate;
+    private int $userCode=0;
 
     /**
      * @return int
@@ -74,6 +74,22 @@ class QuestInfoData implements JsonSerializable
     public function setCreateDate(string $createDate): void
     {
         $this->createDate = $createDate;
+    }
+
+    /**
+     * @return int
+     */
+    public function getUserCode(): int
+    {
+        return $this->userCode;
+    }
+
+    /**
+     * @param int $userCode
+     */
+    public function setUserCode(int $userCode): void
+    {
+        $this->userCode = $userCode;
     }
 
     #[\ReturnTypeWillChange]
