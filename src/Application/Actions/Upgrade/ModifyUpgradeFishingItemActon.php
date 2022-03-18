@@ -13,7 +13,7 @@ class ModifyUpgradeFishingItemActon extends UpgradeAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new UpgradeService($this->logger, $this->upgradeRepository, $this->userRepository
+        $service = new UpgradeService($this->logger, $this->upgradeRepository, $this->userRepository, $this->fishingRepository
             ,$this->commonRepository, $this->redisService);
         $payload = $service->modifyUpgradeFishingItem($input);
         $this->logger->info("upgrade fishing item action");

@@ -14,7 +14,7 @@ class ModifyRepairUserAction extends RepairAction
     {
         $input = (array) $request->getParsedBody();
         $service = new RepairService($this->logger, $this->repairRepository, $this->userRepository
-            ,$this->commonRepository, $this->redisService);
+            ,$this->fishingRepository ,$this->commonRepository, $this->redisService);
         $payload = $service->modifyRepairUser($input);
         $this->logger->info("update user info repair action");
         $message = $payload['message'];

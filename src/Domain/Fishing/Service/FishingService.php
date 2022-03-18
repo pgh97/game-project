@@ -167,6 +167,8 @@ class FishingService extends BaseService
             $weatherCode->setWeatherCode($weatherHistoryInfo->getWeatherCode());
             $weatherInfo = $this->commonRepository->getWeatherInfo($weatherCode);
 
+            //낚시대, 낚시줄, 릴의 제압, 훅킹확률 적용
+            
             //지역별 물고기 리스트
             $search = new SearchInfo();
             $search->setItemCode($data->mapCode);

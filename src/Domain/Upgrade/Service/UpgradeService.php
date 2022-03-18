@@ -2,10 +2,19 @@
 
 namespace App\Domain\Upgrade\Service;
 
+use App\Domain\Common\Entity\SearchInfo;
+use App\Domain\Common\Entity\Ship\ShipInfoData;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Fishing\Repository\FishingRepository;
+use App\Domain\Upgrade\Entity\FishingItemUpgradeData;
+use App\Domain\Upgrade\Entity\ShipItemUpgradeData;
+use App\Domain\Upgrade\Entity\UpgradeItemData;
 use App\Domain\Upgrade\Repository\UpgradeRepository;
+use App\Domain\User\Entity\UserInfo;
+use App\Domain\User\Entity\UserInventoryInfo;
+use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Repository\UserRepository;
 use Psr\Log\LoggerInterface;
 
@@ -13,21 +22,25 @@ class UpgradeService extends BaseService
 {
     protected UpgradeRepository $upgradeRepository;
     protected UserRepository $userRepository;
+    protected FishingRepository $fishingRepository;
     protected CommonRepository $commonRepository;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
 
     private const UPGRADE_REDIS_KEY = 'upgrade:%s';
+    private const USER_REDIS_KEY = 'user:%s';
 
     public function __construct(LoggerInterface $logger
         ,UpgradeRepository $upgradeRepository
         ,UserRepository $userRepository
+        ,FishingRepository $fishingRepository
         ,CommonRepository $commonRepository
         ,RedisService $redisService)
     {
         $this->logger = $logger;
         $this->upgradeRepository = $upgradeRepository;
         $this->userRepository = $userRepository;
+        $this->fishingRepository = $fishingRepository;
         $this->commonRepository = $commonRepository;
         $this->redisService = $redisService;
     }
@@ -35,16 +48,241 @@ class UpgradeService extends BaseService
     public function modifyUpgradeFishingItem(array $input):array
     {
         $data = json_decode((string) json_encode($input), false);
-        return [
-            'message' => "테스트",
-        ];
+        //캐릭터 조회
+        if(self::isRedisEnabled() === true){
+            $userInfo = $this->getOneUserCache($data->decoded->data->userCode, self::USER_REDIS_KEY);
+        }else{
+            $myUserInfo = new UserInfo();
+            $myUserInfo->setUserCode($data->decoded->data->userCode);
+            $userInfo = $this->userRepository->getUserInfo($myUserInfo);
+        }
+        //특정 인벤토리 조회
+        $myInventory = new UserInventoryInfo();
+        $myInventory->setUserCode($data->decoded->data->userCode);
+        $myInventory->setInventoryCode($data->inventoryCode);
+        $itemInfo = $this->userRepository->getUserInventory($myInventory);
+
+        //원본 아이템의 업그레이드 최대 횟수 조회
+        if($itemInfo->getItemType() == 1){
+            $originalItem = $this->fishingRepository->getFishingRodGradeData($itemInfo);
+        } elseif ($itemInfo->getItemType() == 2){
+            $originalItem = $this->fishingRepository->getFishingLineGradeData($itemInfo);
+        } else {
+            $originalItem = $this->fishingRepository->getFishingReelGradeData($itemInfo);
+        }
+
+        //업그레이드 가능한지 비교
+        if($originalItem->getMaxUpgrade() > $itemInfo->getUpgradeLevel()){
+            //fishing_item_upgrade_data에서 업로드 효과 조회
+            $upgradeInfo = new FishingItemUpgradeData();
+            $upgradeInfo->setUpgradeCode($itemInfo->getUpgradeCode()+1);
+            $upgradeInfo = $this->upgradeRepository->getFishingItemUpgradeData($upgradeInfo);
+
+            //인벤토리에 필요한 업그레이드 부품과 갯수 있는지 확인
+            $search = new SearchInfo();
+            $search->setUserCode($userInfo->getUserCode());
+            $search->setItemCode($upgradeInfo->getUpgradeItemCode());
+            $search->setItemType(6);
+            $upgradeItemCnt = $this->userRepository->getUserInventoryUpgradeItemListCnt($search);
+
+            if($upgradeItemCnt >= $upgradeInfo->getUpgradeItemCount()){
+                //캐릭터 재화가 업그레이드에 충분한지 비교
+                if($upgradeInfo->getMoneyCode() == 1){
+                    $compareMoney = $userInfo->getMoneyGold() - $upgradeInfo->getUpgradePrice();
+                    $userInfo->setMoneyGold($compareMoney);
+                } elseif ($upgradeInfo->getMoneyCode() == 2){
+                    $compareMoney = $userInfo->getMoneyPearl() - $upgradeInfo->getUpgradePrice();
+                    $userInfo->setMoneyPearl($compareMoney);
+                } else {
+                    $compareMoney = $userInfo->getFatigue() - $upgradeInfo->getUpgradePrice();
+                    $userInfo->setFatigue($compareMoney);
+                }
+
+                if($compareMoney >= 0){
+                    //인벤토리 업그레이드 수정
+                    $itemInfo->setUpgradeCode($upgradeInfo->getUpgradeCode());
+                    $itemInfo->setUpgradeLevel($upgradeInfo->getUpgradeLevel());
+                    $itemInfo->setItemDurability($itemInfo->getItemDurability()+round($originalItem->getDurability()*$upgradeInfo->getAddProbability()/10));
+                    //$this->userRepository->createUserInventoryInfo($itemInfo);
+                    
+                    //인벤토리 업그레이드 부품 필요한 카운트 만큼 제거
+                    $upgradeItemArray = $this->userRepository->getUserInventoryUpgradeItems($search);
+
+                    //재화변경으로 캐릭터 수정
+                    //$this->userRepository->modifyUserInfo($userInfo);
+
+                    //redis 캐릭터 정보 변경
+                    if (self::isRedisEnabled() === true) {
+                        $userInfo = $this->userRepository->getUserInfo($userInfo);
+                        $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
+                    }
+                    return [
+                        'moneyCode' => $upgradeInfo->getMoneyCode(),
+                        'moneyPrice' => $upgradeInfo->getUpgradePrice(),
+                        'info' => $upgradeItemArray,
+                        'message' => "장비를 업그레이드했습니다.",
+                    ];
+                }else{
+                    return [
+                        'moneyCode' => $upgradeInfo->getMoneyCode(),
+                        'moneyPrice' => $upgradeInfo->getUpgradePrice(),
+                        'message' => "업그레이드에 필요한 재화가 부족합니다.",
+                    ];
+                }
+            }else{
+                return [
+                    'message' => "업그레이드에 필요한 부품이 부족합니다.",
+                ];
+            }
+        }else{
+            return [
+                'message' => "해당 장비는 최대 업그레이드 상태입니다.",
+            ];
+        }
     }
 
     public function modifyUpgradeShipItem(array $input):array
     {
         $data = json_decode((string) json_encode($input), false);
-        return [
-            'message' => "테스트",
-        ];
+        //캐릭터 조회
+        if(self::isRedisEnabled() === true){
+            $userInfo = $this->getOneUserCache($data->decoded->data->userCode, self::USER_REDIS_KEY);
+        }else{
+            $myUserInfo = new UserInfo();
+            $myUserInfo->setUserCode($data->decoded->data->userCode);
+            $userInfo = $this->userRepository->getUserInfo($myUserInfo);
+        }
+        //캐릭터 보로롱24호 조회
+        $myShip = new UserShipInfo();
+        $myShip->setUserCode($data->decoded->data->userCode);
+        $itemInfo = $this->userRepository->getUserShipInfo($myShip);
+
+        //원본 보로롱24호 조회
+        $originalItem = new ShipInfoData();
+        $originalItem->setShipCode($itemInfo->getShipCode());
+        $originalItem = $this->commonRepository->getShipInfo($originalItem);
+
+        //업그레이드 가능한지 비교
+        if($originalItem->getMaxUpgrade() > $itemInfo->getUpgradeLevel()){
+            //ship_item_upgrade_data 조회
+            $upgradeInfo = new ShipItemUpgradeData();
+            $upgradeInfo->setUpgradeCode($itemInfo->getUpgradeCode()+1);
+            $upgradeInfo = $this->upgradeRepository->getShipItemUpgradeData($upgradeInfo);
+
+            //캐릭터 재화가 업그레이드에 충분한지 비교
+            if($upgradeInfo->getMoneyCode() == 1){
+                $compareMoney = $userInfo->getMoneyGold() - $upgradeInfo->getUpgradePrice();
+                $userInfo->setMoneyGold($compareMoney);
+            } elseif ($upgradeInfo->getMoneyCode() == 2){
+                $compareMoney = $userInfo->getMoneyPearl() - $upgradeInfo->getUpgradePrice();
+                $userInfo->setMoneyPearl($compareMoney);
+            } else {
+                $compareMoney = $userInfo->getFatigue() - $upgradeInfo->getUpgradePrice();
+                $userInfo->setFatigue($compareMoney);
+            }
+            if($compareMoney >= 0){
+                //보로롱24호 업그레이드 성공여부
+                $probabilityArray = array(0,1); // 0:성공, 1:실패
+                $percentArray = array($upgradeInfo->getUpgradeProbability(), 100-$upgradeInfo->getUpgradeProbability());
+                $result = $this->Percent_draw($probabilityArray, $percentArray);
+                if($result == 0){
+                    //보로롱24호 업그레이드 수정
+                    $itemInfo->setUpgradeCode($upgradeInfo->getUpgradeCode());
+                    $itemInfo->setUpgradeLevel($upgradeInfo->getUpgradeLevel());
+                    $itemInfo->setDurability($originalItem->getDurability()+($originalItem->getDurability()*$upgradeInfo->getAddProbability()));
+                    $itemInfo->setFuel($originalItem->getFuel()+($originalItem->getFuel()*$upgradeInfo->getAddFuel()));
+                    $this->userRepository->modifyUserShip($itemInfo);
+
+                    //재화변경으로 캐릭터 수정
+                    $this->userRepository->modifyUserInfo($userInfo);
+
+                    //redis 캐릭터 정보 변경
+                    if (self::isRedisEnabled() === true) {
+                        $userInfo = $this->userRepository->getUserInfo($userInfo);
+                        $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
+                    }
+                    return [
+                        'moneyCode' => $upgradeInfo->getMoneyCode(),
+                        'moneyPrice' => $upgradeInfo->getUpgradePrice(),
+                        'message' => "보로롱24호 업그레이드에 성공했습니다.",
+                    ];
+                }else{
+                    return [
+                        'moneyCode' => $upgradeInfo->getMoneyCode(),
+                        'moneyPrice' => $upgradeInfo->getUpgradePrice(),
+                        'message' => "보로롱24호 업그레이드에 실패했습니다...",
+                    ];
+                }
+            }else{
+                return [
+                    'moneyCode' => $upgradeInfo->getMoneyCode(),
+                    'moneyPrice' => $upgradeInfo->getUpgradePrice(),
+                    'message' => "보로롱24호 업그레이드에 필요한 재화가 부족합니다.",
+                ];
+            }
+        }else{
+            return [
+                'message' => "보로롱24호는 최대 업그레이드 상태입니다.",
+            ];
+        }
+    }
+
+    protected function saveInCache(int $userCode, object $user, string $redisKey): void
+    {
+        $redisKey = sprintf($redisKey, $userCode);
+        $key = $this->redisService->generateKey($redisKey);
+        //$this->redisService->setex($key, $user);
+        $this->redisService->set($key, $user);
+    }
+
+    protected function deleteFromCache(int $userCode, string $redisKey): void
+    {
+        $redisKey = sprintf($redisKey, $userCode);
+        $key = $this->redisService->generateKey($redisKey);
+        $this->redisService->del([$key]);
+    }
+
+    protected function getOneUserCache(int $code, string $redisKeys): UserInfo
+    {
+        $redisKey = sprintf($redisKeys, $code);
+        $key = $this->redisService->generateKey($redisKey);
+        if ($this->redisService->exists($key)) {
+            $model = json_decode((string)json_encode($this->redisService->get($key)), false);
+
+            $userInfo = new UserInfo();
+            $userInfo->setAccountCode($model->accountCode);
+            $userInfo->setUserCode($model->userCode);
+            $userInfo->setUserNickNm($model->userNickNm);
+            $userInfo->setLevelCode($model->levelCode);
+            $userInfo->setUserExperience($model->userExperience);
+            $userInfo->setMoneyGold($model->moneyGold);
+            $userInfo->setMoneyPearl($model->moneyPearl);
+            $userInfo->setFatigue($model->fatigue);
+            $userInfo->setUseInventoryCount($model->useInventoryCount);
+            $userInfo->setUseSaveItemCount($model->useSaveItemCount);
+            $userInfo->setCreateDate($model->createDate);
+        } else {
+            $myUserInfo = new UserInfo();
+            $myUserInfo->setUserCode($code);
+            $userInfo = $this->userRepository->getUserInfo($myUserInfo);
+        }
+        return $userInfo;
+    }
+
+    protected function Percent_draw($items_list, $percent_list)
+    {
+        $range_now = 0;
+        $range_last = 0;
+        $decimal = 4;
+        if(count($percent_list) != count($items_list)) return false;
+        $draw = mt_rand(1,pow(10,$decimal)*array_sum($percent_list));
+        for($sequence=0; $sequence<count($percent_list); $sequence++) {
+            $range_now += pow(10,$decimal)*$percent_list[$sequence];
+            if($range_now >= $draw && $range_last < $draw) {
+                return $items_list[$sequence];
+            }else{
+                $range_last = $range_now;
+            }
+        }
     }
 }

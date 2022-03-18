@@ -81,13 +81,13 @@ return function (App $app) {
 
         $group->group('/upgrade', function (Group $upgrade){
             //$upgrade->post('/fishing-item/preview', );
-            //$upgrade->post('/fishing-item', );
-            //$upgrade->post('/ship-item/preview', );
-            //$upgrade->post('/ship-item', );
+            $upgrade->post('/fishing-item', Actions\Upgrade\ModifyUpgradeFishingItemActon::class);
+            //$upgrade->post('/ship-item/preview', Actions\Upgrade\ModifyUpgradeShipItemActon::class);
+            $upgrade->post('/ship-item', Actions\Upgrade\ModifyUpgradeShipItemActon::class);
         })->add(new JWTAuthMiddleware());
 
         $group->group('/repair', function (Group $repair){
-            $repair->post('/user', Actions\Repair\ModifyRepairUserAction::class);
+            //$repair->post('/user', Actions\Repair\ModifyRepairUserAction::class);
             $repair->post('/item', Actions\Repair\ModifyRepairItemAction::class);
         })->add(new JWTAuthMiddleware());
 
@@ -102,8 +102,8 @@ return function (App $app) {
         $group->group('/shop', function (Group $shop){
             $shop->post('/items', Actions\Shop\GetShopListAction::class);
             $shop->post('/item', Actions\Shop\GetShopAction::class);
-            //$shop->post('/item/buy', )->add(new JWTAuthMiddleware());
-            //$shop->post('/user-item/sell', )->add(new JWTAuthMiddleware());
+            $shop->post('/item/buy', Actions\Shop\BuyShopAction::class)->add(new JWTAuthMiddleware());
+            $shop->post('/user-item/sell', Actions\Shop\SellShopAction::class)->add(new JWTAuthMiddleware());
         });
     });
 };

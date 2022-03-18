@@ -481,8 +481,8 @@ class UserDBRepository extends BaseRepository implements UserRepository
                 ,user_code              AS userCode
                 ,item_code              AS itemCode
                 ,item_type              AS itemType
-                ,upgrade_code           AS upgradCode
-                ,upgrade_level          AS upgradLevel
+                ,upgrade_code           AS upgradeCode
+                ,upgrade_level          AS upgradeLevel
                 ,item_count             AS itemCount
                 ,item_durability         AS itemDurability
                 ,create_date            AS createDate
@@ -547,8 +547,8 @@ class UserDBRepository extends BaseRepository implements UserRepository
                 ,user_code              AS userCode
                 ,item_code              AS itemCode
                 ,item_type              AS itemType
-                ,upgrade_code           AS upgradCode
-                ,upgrade_level          AS upgradLevel
+                ,upgrade_code           AS upgradeCode
+                ,upgrade_level          AS upgradeLevel
                 ,item_count             AS itemCount
                 ,item_durability         AS itemDurability
                 ,create_date            AS createDate
@@ -571,6 +571,80 @@ class UserDBRepository extends BaseRepository implements UserRepository
             $failInventory->setInventoryCode(0);
             return $failInventory;
         }
+    }
+
+    public function getUserInventoryUpgradeItems(SearchInfo $searchInfo): array
+    {
+        $query = '
+            SELECT 
+                inventory_code          AS inventoryCode
+                ,user_code              AS userCode
+                ,item_code              AS itemCode
+                ,item_type              AS itemType
+                ,upgrade_code           AS upgradeCode
+                ,upgrade_level          AS upgradeLevel
+                ,item_count             AS itemCount
+                ,item_durability         AS itemDurability
+                ,create_date            AS createDate
+            FROM `user_inventory_info`
+            WHERE user_code = :userCode AND item_code=:itemCode AND item_type=:itemType
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $itemCode = $searchInfo->getItemCode();
+        $itemType = $searchInfo->getItemType();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->execute();
+
+        return (array) $statement->fetchAll();
+    }
+
+    public function getUserInventoryUpgradeItemListCnt(SearchInfo $searchInfo): int
+    {
+        $query = '
+            SELECT 
+                IF(sum(item_count) IS NULL, 0, sum(item_count)) AS itemCount
+            FROM `user_inventory_info`
+            WHERE user_code = :userCode AND item_code=:itemCode AND item_type=:itemType
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $itemCode = $searchInfo->getItemCode();
+        $itemType = $searchInfo->getItemType();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->execute();
+
+        return $statement->fetchColumn();
+    }
+
+    public function getUserInventoryCode(SearchInfo $searchInfo): int
+    {
+        $query = '
+            SELECT 
+                inventory_code          AS inventoryCode
+            FROM `user_inventory_info`
+            WHERE user_code = :userCode AND item_code=:itemCode AND item_type=:itemType
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $itemCode = $searchInfo->getItemCode();
+        $itemType = $searchInfo->getItemType();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->execute();
+
+        return $statement->fetchColumn();
     }
 
     public function deleteUserInfo(UserInfo $userInfo): int
@@ -734,6 +808,8 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $userCode = $userShipInfo->getUserCode();
         $durability = $userShipInfo->getDurability();
         $fuel = $userShipInfo->getFuel();
+        $upgradeCode = $userShipInfo->getUpgradeCode();
+        $upgradeLevel = $userShipInfo->getUpgradeLevel();
 
         $queryFront = 'UPDATE `user_ship_info` SET ';
         $queryBody = '';
@@ -754,6 +830,7 @@ class UserDBRepository extends BaseRepository implements UserRepository
                 }
             }
         }
+
         if(!empty($fuel)){
             if(empty($queryBody)){
                 $queryBody .= 'fuel = :fuel ';
@@ -766,6 +843,22 @@ class UserDBRepository extends BaseRepository implements UserRepository
             }
         }
 
+        if(!empty($upgradeCode)){
+            if(empty($queryBody)){
+                $queryBody .= 'upgrade_code = :upgradeCode ';
+            }else{
+                $queryBody .= ',upgrade_code = :upgradeCode ';
+            }
+        }
+
+        if(!empty($upgradeLevel)){
+            if(empty($queryBody)){
+                $queryBody .= 'upgrade_level = :upgradeLevel ';
+            }else{
+                $queryBody .= ',upgrade_level = :upgradeLevel ';
+            }
+        }
+
         $query = $queryFront.$queryBody.$queryEnd;
         $statement = $this->database->prepare($query);
 
@@ -774,6 +867,12 @@ class UserDBRepository extends BaseRepository implements UserRepository
         }
         if(!empty($fuel)){
             $statement->bindParam(':fuel', $fuel);
+        }
+        if(!empty($upgradeCode)){
+            $statement->bindParam(':upgradeCode', $upgradeCode);
+        }
+        if(!empty($upgradeLevel)){
+            $statement->bindParam(':upgradeLevel', $upgradeLevel);
         }
 
         $statement->bindParam(':userCode', $userCode);
@@ -1110,7 +1209,7 @@ class UserDBRepository extends BaseRepository implements UserRepository
                 SELECT 
                        user_code, item_code, item_type, 0, 0 , item_count, 1 , NOW()
                 FROM user_gift_box_info 
-                WHERE user_code=:userCode AND item_type != 1 AND read_status = 0
+                WHERE user_code=:userCode AND item_type != 99 AND read_status = 0
             ';
 
         $statement = $this->database->prepare($query);
@@ -1149,9 +1248,9 @@ class UserDBRepository extends BaseRepository implements UserRepository
     {
         $query = ' 
             UPDATE `user_info` SET
-               money_gold = money_gold + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode1 and item_type=1 and item_code=1 and read_status = 0)
-                ,money_pearl = money_pearl + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode2 and item_type=1 and item_code=2 and read_status = 0)
-                ,fatigue = fatigue + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode3 and item_type=1 and item_code=3 and read_status = 0)
+               money_gold = money_gold + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode1 and item_type=99 and item_code=1 and read_status = 0)
+                ,money_pearl = money_pearl + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode2 and item_type=99 and item_code=2 and read_status = 0)
+                ,fatigue = fatigue + (select if(sum(item_count) is null, 0,  sum(item_count)) from user_gift_box_info where user_code=:userCode3 and item_type=99 and item_code=3 and read_status = 0)
             WHERE user_code = :userCode4
         ';
 
@@ -1165,4 +1264,29 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $statement->execute();
         return (int) $this->database->lastInsertId();
     }
+
+    public function createUserGiftBoxShop(UserGitfBoxInfo $boxInfo): int
+    {
+        $query = '
+            INSERT INTO `user_gift_box_info`
+                (`user_code`, `item_code`, `item_type`, `item_count`
+                ,`read_status` ,`create_date`)
+            VALUES
+                (:userCode, :itemCode, :itemType, :itemCount, 0, NOW())
+        ';
+        $statement = $this->database->prepare($query);
+        $userCode = $boxInfo->getUserCode();
+        $itemCode = $boxInfo->getItemCode();
+        $itemType = $boxInfo->getItemType();
+        $itemCount = $boxInfo->getItemCount();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->bindParam(':itemCount', $itemCount);
+        $statement->execute();
+
+        return (int) $this->database->lastInsertId();
+    }
+
 }

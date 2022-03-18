@@ -501,7 +501,7 @@ class UserService extends BaseService
         $search->setUserCode($data->decoded->data->userCode);
         $inventoryCnt = $this->userRepository->getUserInventoryListCnt($search);
 
-        $search->setItemType(1);
+        $search->setItemType(99);
         $boxCnt = $this->userRepository->getUserGiftBoxListCnt($search);
 
         if(!empty($data->boxCode)){
@@ -510,7 +510,7 @@ class UserService extends BaseService
             $boxInfo = $this->userRepository->getUserGiftBoxInfo($myBoxInfo);
             if($boxInfo->getReadStatus() == 0){
                 //캐릭터 재화 추가
-                if($boxInfo->getItemType()==1){
+                if($boxInfo->getItemType()==99){
                     if($boxInfo->getItemCode()==1){
                         $userInfo->setMoneyGold($userInfo->getMoneyGold()+$boxInfo->getItemCount());
                     }elseif ($boxInfo->getItemCode()==2){
@@ -520,16 +520,32 @@ class UserService extends BaseService
                     }
                     $this->userRepository->modifyUserInfo($userInfo);
                 }else{
-                    //인벤토리 등록
+                    //인벤토리 여부 확인, 인벤토리 코드 return
+                    $search->setItemCode($boxInfo->getItemCode());
+                    $search->setItemType($boxInfo->getItemType());
+                    $inventoryCode = $this->userRepository->getUserInventoryCode($search);
+
                     $myInventory = new UserInventoryInfo();
                     $myInventory->setUserCode($boxInfo->getUserCode());
-                    $myInventory->setItemCode($boxInfo->getItemCode());
-                    $myInventory->setItemType($boxInfo->getItemType());
-                    $myInventory->setUpgradeCode(0);
-                    $myInventory->setUpgradeLevel(0);
-                    $myInventory->setItemCount($boxInfo->getItemCount());
-                    $myInventory->setItemDurability(1);
-                    $this->userRepository->createUserInventoryInfo($myInventory);
+                    if ($inventoryCode != 0){
+                        //인벤토리 조회
+                        $myInventory->setInventoryCode($inventoryCode);
+                        $inventoryInfo = $this->userRepository->getUserInventory($myInventory);
+
+                        //인벤토리 등록
+                        $inventoryInfo->setItemCount($inventoryInfo->getItemCount()+$boxInfo->getItemCount());
+                        //인벤토리 등록
+                        $this->userRepository->createUserInventoryInfo($inventoryInfo);
+                    }else{
+                        $myInventory->setItemCode($boxInfo->getItemCode());
+                        $myInventory->setItemType($boxInfo->getItemType());
+                        $myInventory->setUpgradeCode(0);
+                        $myInventory->setUpgradeLevel(0);
+                        $myInventory->setItemCount($boxInfo->getItemCount());
+                        $myInventory->setItemDurability(1);
+                        //인벤토리 등록
+                        $this->userRepository->createUserInventoryInfo($myInventory);
+                    }
                 }
                 //선물함(우편함) 읽음으로 수정
                 $this->userRepository->modifyUserGiftBoxStatus($boxInfo);

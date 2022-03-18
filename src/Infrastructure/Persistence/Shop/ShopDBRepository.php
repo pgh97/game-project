@@ -73,4 +73,30 @@ class ShopDBRepository extends BaseRepository implements ShopRepository
 
         return $statement->fetchColumn();
     }
+
+    public function getShopInfoItem(ShopInfoData $shopInfoData): ShopInfoData
+    {
+        $query = '
+            SELECT 
+                shop_code               AS shopCode
+                ,item_code              AS itemCode
+                ,item_type              AS itemType
+                ,IF(sale_percent IS NULL, 0, sale_percent)           AS salePercent
+                ,money_code             AS moneyCode
+                ,item_price             AS itemPrice
+                ,create_date            AS createDate
+            FROM `shop_info_data`
+            WHERE item_code = :itemCode AND item_type = :itemType
+        ';
+
+        $statement = $this->database->prepare($query);
+        $itemCode = $shopInfoData->getItemCode();
+        $itemType = $shopInfoData->getItemType();
+
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->execute();
+
+        return $statement->fetchObject(ShopInfoData::class);
+    }
 }

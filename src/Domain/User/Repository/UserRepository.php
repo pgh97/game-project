@@ -64,6 +64,12 @@ interface UserRepository
     public function createUserFishDictionary(UserFishInventoryInfo $userFishInventoryInfo): int;
 
     /**
+     * @param UserGitfBoxInfo $boxInfo
+     * @return int
+     */
+    public function createUserGiftBoxShop(UserGitfBoxInfo $boxInfo): int;
+
+    /**
      * @param UserInfo $userInfo
      * @return UserInfo
      */
@@ -116,6 +122,24 @@ interface UserRepository
      * @return UserInventoryInfo
      */
     public function getUserInventory(UserInventoryInfo $inventoryInfo): UserInventoryInfo;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return array
+     */
+    public function getUserInventoryUpgradeItems(SearchInfo $searchInfo): array;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function getUserInventoryUpgradeItemListCnt(SearchInfo $searchInfo): int;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function getUserInventoryCode(SearchInfo $searchInfo): int;
 
     /**
      * @param SearchInfo $searchInfo
@@ -208,7 +232,7 @@ interface UserRepository
     public function modifyUserInventoryFishDurability(UserInventoryInfo $inventoryInfo): int;
 
     /**
-     * @param UserInventoryInfo $inventoryInfo
+     * @param UserQuestInfo $userQuestInfo
      * @return int
      */
     public function createUserQuestInfo(UserQuestInfo $userQuestInfo): int;
@@ -236,4 +260,6 @@ interface UserRepository
      * @return int
      */
     public function modifyUserInfoGiftBox(UserGitfBoxInfo $boxInfo): int;
+
+
 }

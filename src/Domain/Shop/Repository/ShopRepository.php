@@ -24,4 +24,10 @@ interface ShopRepository
      * @return int
      */
     public function getShopInfoListCnt(SearchInfo $searchInfo): int;
+
+    /**
+    * @param ShopInfoData $shopInfoData
+    * @return ShopInfoData
+    */
+    public function getShopInfoItem(ShopInfoData $shopInfoData): ShopInfoData;
 }

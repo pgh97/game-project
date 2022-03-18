@@ -10,8 +10,8 @@ class UserShipInfo implements JsonSerializable
     private int $shipCode;
     private int $durability;
     private int $fuel;
-    private int $upgradeCode;
-    private int $upgradeLevel;
+    private int $upgradeCode=0;
+    private int $upgradeLevel=0;
     private string $createDate;
 
     /**

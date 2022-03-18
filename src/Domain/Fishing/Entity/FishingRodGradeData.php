@@ -13,8 +13,8 @@ class FishingRodGradeData implements JsonSerializable
     private int $durability;
     private int $suppressProbability;
     private int $hookingProbability;
-    private int $maxWeight;
-    private int $minWeight;
+    private int $maxWeight=0;
+    private int $minWeight=0;
     private int $maxUpgrade;
     private string $createDate;
 
