@@ -2,6 +2,7 @@
 
 namespace App\Domain\Repair\Service;
 
+use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\Ship\ShipInfoData;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
@@ -163,22 +164,38 @@ class RepairService extends BaseService
             $myUserInfo->setUserCode($data->decoded->data->userCode);
             $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         }
-        //item_repair_info_data 조회 -> 데이터 추가
-
+        //user_level_info_data 조회 피로도 확인
+        $myLevelInfo = new UserLevelInfoData();
+        $myLevelInfo->setLevelCode($userInfo->getLevelCode());
+        $levelInfo = $this->userRepository->getUserLevelInfo($myLevelInfo);
         //캐릭터 재화에 수리비용 충분한지 비교
-
-        //캐릭터 재화 소비
-
-        //수리 -> 유저 피로도 상승
-
-        //redis 캐릭터정보 변경
-        if (self::isRedisEnabled() === true) {
-            $userInfo = $this->userRepository->getUserInfo($userInfo);
-            $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
+        $fatigue = $levelInfo->getMaxFatigue() - $userInfo->getFatigue();
+        if($fatigue != 0){
+            if($userInfo->getMoneyGold() >= ($fatigue * 10)){
+                //캐릭터 재화 소비 및 피로도 수정
+                $userInfo->setMoneyGold($userInfo->getMoneyGold() - ($fatigue * 10));
+                $userInfo->setFatigue($levelInfo->getMaxFatigue());
+                $this->userRepository->modifyUserInfo($userInfo);
+                //redis 캐릭터정보 변경
+                if (self::isRedisEnabled() === true) {
+                    $userInfo = $this->userRepository->getUserInfo($userInfo);
+                    $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
+                }
+                return [
+                    'moneyCode' => 1,
+                    'moneyPrice' => $fatigue * 10,
+                    'message' => "캐릭터 피로도 충전 되었습니다.",
+                ];
+            }else{
+                return [
+                    'message' => "재화가 부족합니다.",
+                ];
+            }
+        }else{
+            return [
+                'message' => "이미 캐릭터 피로도는 최대치입니다.",
+            ];
         }
-        return [
-            'message' => "테스트",
-        ];
     }
 
     protected function saveInCache(int $userCode, object $user, string $redisKey): void

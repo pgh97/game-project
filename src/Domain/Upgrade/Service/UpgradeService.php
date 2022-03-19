@@ -103,13 +103,15 @@ class UpgradeService extends BaseService
                     $itemInfo->setUpgradeCode($upgradeInfo->getUpgradeCode());
                     $itemInfo->setUpgradeLevel($upgradeInfo->getUpgradeLevel());
                     $itemInfo->setItemDurability($itemInfo->getItemDurability()+round($originalItem->getDurability()*$upgradeInfo->getAddProbability()/10));
-                    //$this->userRepository->createUserInventoryInfo($itemInfo);
+                    $this->userRepository->createUserInventoryInfo($itemInfo);
                     
                     //인벤토리 업그레이드 부품 필요한 카운트 만큼 제거
-                    $upgradeItemArray = $this->userRepository->getUserInventoryUpgradeItems($search);
+                    $upgradeItemInfo = $this->userRepository->getUserInventoryUpgradeItem($search);
+                    $upgradeItemInfo->setItemCount($upgradeItemInfo->getItemCount()-$upgradeInfo->getUpgradeItemCount());
+                    $this->userRepository->createUserInventoryInfo($upgradeItemInfo);
 
                     //재화변경으로 캐릭터 수정
-                    //$this->userRepository->modifyUserInfo($userInfo);
+                    $this->userRepository->modifyUserInfo($userInfo);
 
                     //redis 캐릭터 정보 변경
                     if (self::isRedisEnabled() === true) {
@@ -119,7 +121,6 @@ class UpgradeService extends BaseService
                     return [
                         'moneyCode' => $upgradeInfo->getMoneyCode(),
                         'moneyPrice' => $upgradeInfo->getUpgradePrice(),
-                        'info' => $upgradeItemArray,
                         'message' => "장비를 업그레이드했습니다.",
                     ];
                 }else{

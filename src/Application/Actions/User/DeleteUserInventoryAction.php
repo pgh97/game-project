@@ -14,8 +14,8 @@ class DeleteUserInventoryAction extends UserAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new UserService($this->logger, $this->userRepository
-            , $this->commonRepository, $this->redisService);
+        $service = new UserService($this->logger, $this->userRepository, $this->upgradeRepository
+            , $this->fishingRepository, $this->commonRepository, $this->redisService);
         $payload=$service->removeUserInventory($input);
         if($payload==0){
             $this->logger->info("fail delete user inventory Action");

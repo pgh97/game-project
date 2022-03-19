@@ -8,7 +8,7 @@ class CompensationInfoData implements JsonSerializable
 {
     private int $compensationCode;
     private int $itemCode;
-    private int $itemType; //보상아이템타입(99 : 재화 (골드, 진주), 2 : 채비  바늘, 3 : 채비  미끼) 나머지는 인벤토리와 같음
+    private int $itemType; //보상아이템타입(99 : 재화 (골드, 진주), 3 : (채비  바늘), 4 : (채비  미끼)) 나머지는 인벤토리와 같음
     private int $compensationValue;
     private string $createDate;
 

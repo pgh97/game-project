@@ -9,7 +9,11 @@ use App\Domain\Common\Entity\Weather\WeatherInfoData;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Fishing\Repository\FishingRepository;
+use App\Domain\Upgrade\Entity\FishingItemUpgradeData;
+use App\Domain\Upgrade\Repository\UpgradeRepository;
 use App\Domain\User\Entity\UserChoiceItemInfo;
+use App\Domain\User\Entity\UserFishDictionary;
 use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
@@ -22,6 +26,8 @@ use Firebase\JWT\JWT;
 class UserService extends BaseService
 {
     protected UserRepository $userRepository;
+    protected UpgradeRepository $upgradeRepository;
+    protected FishingRepository $fishingRepository;
     protected CommonRepository $commonRepository;
     protected LoggerInterface $logger;
     protected RedisService $redisService;
@@ -31,11 +37,15 @@ class UserService extends BaseService
 
     public function __construct(LoggerInterface $logger
         , UserRepository                        $userRepository
+        , UpgradeRepository                     $upgradeRepository
+        , FishingRepository                     $fishingRepository
         , CommonRepository                      $commonRepository
         , RedisService                          $redisService)
     {
         $this->logger = $logger;
         $this->userRepository = $userRepository;
+        $this->upgradeRepository = $upgradeRepository;
+        $this->fishingRepository = $fishingRepository;
         $this->commonRepository = $commonRepository;
         $this->redisService = $redisService;
     }
@@ -482,7 +492,7 @@ class UserService extends BaseService
         ];
     }
 
-    public function modifyUserGiftBox(array $input):array
+    public function modifyUserGiftBox(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myBoxInfo = new UserGitfBoxInfo();
@@ -501,9 +511,6 @@ class UserService extends BaseService
         $search->setUserCode($data->decoded->data->userCode);
         $inventoryCnt = $this->userRepository->getUserInventoryListCnt($search);
 
-        $search->setItemType(99);
-        $boxCnt = $this->userRepository->getUserGiftBoxListCnt($search);
-
         if(!empty($data->boxCode)){
             $myBoxInfo->setBoxCode($data->boxCode);
             //선물
@@ -519,7 +526,41 @@ class UserService extends BaseService
                         $userInfo->setFatigue($userInfo->setFatigue($userInfo->getFatigue()+$boxInfo->getItemCount()));
                     }
                     $this->userRepository->modifyUserInfo($userInfo);
-                }else{
+                } elseif ($boxInfo->getItemType() == 1 || $boxInfo->getItemType() == 2
+                    || $boxInfo->getItemType() == 5){
+                    if($userInfo->getUseInventoryCount() >= ($inventoryCnt+$boxInfo->getItemCount())){
+                        //업그레이드 초기값 코드 조회
+                        $myUpgrade = new FishingItemUpgradeData();
+                        $myUpgrade->setItemGradeCode($boxInfo->getItemCode());
+                        $myUpgrade->setItemType($boxInfo->getItemType());
+                        $myUpgrade->setUpgradeLevel(1);
+                        $upgradeCode = $this->upgradeRepository->getFishingItemUpgradeCode($myUpgrade);
+
+                        $myInventory = new UserInventoryInfo();
+                        $myInventory->setUserCode($boxInfo->getUserCode());
+                        $myInventory->setItemCode($boxInfo->getItemCode());
+                        $myInventory->setItemType($boxInfo->getItemType());
+                        $myInventory->setUpgradeCode($upgradeCode);
+                        $myInventory->setUpgradeLevel(1);
+                        $myInventory->setItemCount(1);
+                        if($boxInfo->getItemType() == 1){
+                            $originalItem = $this->fishingRepository->getFishingRodGradeData($myInventory);
+                        } elseif ($boxInfo->getItemType() == 2){
+                            $originalItem = $this->fishingRepository->getFishingLineGradeData($myInventory);
+                        } else {
+                            $originalItem = $this->fishingRepository->getFishingReelGradeData($myInventory);
+                        }
+                        $myInventory->setItemDurability($originalItem->getDurability());
+                        //인벤토리 등록
+                        for($i=0; $i<$boxInfo->getItemCount(); $i++){
+                            $this->userRepository->createUserInventoryInfo($myInventory);
+                        }
+                    }else{
+                        return [
+                            'message' => "선물(아이템)을 받으면 인벤토리가 넘칩니다. 인벤토리를 정리해주세요.",
+                        ];
+                    }
+                } else{
                     //인벤토리 여부 확인, 인벤토리 코드 return
                     $search->setItemCode($boxInfo->getItemCode());
                     $search->setItemType($boxInfo->getItemType());
@@ -528,23 +569,27 @@ class UserService extends BaseService
                     $myInventory = new UserInventoryInfo();
                     $myInventory->setUserCode($boxInfo->getUserCode());
                     if ($inventoryCode != 0){
-                        //인벤토리 조회
+                        //인벤토리에 같은 아이템 조회
                         $myInventory->setInventoryCode($inventoryCode);
                         $inventoryInfo = $this->userRepository->getUserInventory($myInventory);
-
-                        //인벤토리 등록
+                        //인벤토리 등록 (카운트 증가)
                         $inventoryInfo->setItemCount($inventoryInfo->getItemCount()+$boxInfo->getItemCount());
-                        //인벤토리 등록
                         $this->userRepository->createUserInventoryInfo($inventoryInfo);
                     }else{
-                        $myInventory->setItemCode($boxInfo->getItemCode());
-                        $myInventory->setItemType($boxInfo->getItemType());
-                        $myInventory->setUpgradeCode(0);
-                        $myInventory->setUpgradeLevel(0);
-                        $myInventory->setItemCount($boxInfo->getItemCount());
-                        $myInventory->setItemDurability(1);
-                        //인벤토리 등록
-                        $this->userRepository->createUserInventoryInfo($myInventory);
+                        if($userInfo->getUseInventoryCount() >= ($inventoryCnt+1)){
+                            $myInventory->setItemCode($boxInfo->getItemCode());
+                            $myInventory->setItemType($boxInfo->getItemType());
+                            $myInventory->setUpgradeCode(0);
+                            $myInventory->setUpgradeLevel(0);
+                            $myInventory->setItemCount($boxInfo->getItemCount());
+                            $myInventory->setItemDurability(1);
+                            //인벤토리 등록
+                            $this->userRepository->createUserInventoryInfo($myInventory);
+                        }else{
+                            return [
+                                'message' => "선물(아이템)을 받으면 인벤토리가 넘칩니다. 인벤토리를 정리해주세요.",
+                            ];
+                        }
                     }
                 }
                 //선물함(우편함) 읽음으로 수정
@@ -562,27 +607,202 @@ class UserService extends BaseService
                 ];
             }
         }else{
+            $search->setItemType(99);
+            $itemCount = $this->userRepository->getUserGiftBoxFishingItemSum($search);
+            $boxCnt = $this->userRepository->getUserGiftBoxListCnt($search) + $itemCount;
+
             $myBoxInfo->setBoxCode(0);
-            if($userInfo->getUseInventoryCount() >= ($inventoryCnt+$boxCnt)){
-                //캐릭터 재화 추가
-                $this->userRepository->modifyUserInfoGiftBox($myBoxInfo);
-                //인벤토리 등록
-                $this->userRepository->createUserGiftBoxToInventory($myBoxInfo);
-                //선물함(우편함) 읽음으로 수정
-                $this->userRepository->modifyUserGiftBoxStatus($myBoxInfo);
-                if (self::isRedisEnabled() === true) {
-                    $user = $this->userRepository->getUserInfo($userInfo);
-                    $this->saveInCache($user->getUserCode(), $user, self::USER_REDIS_KEY);
+            if($boxCnt != 0){
+                if($userInfo->getUseInventoryCount() >= ($inventoryCnt+$boxCnt)){
+                    //캐릭터 재화 추가
+                    $this->userRepository->modifyUserInfoGiftBox($myBoxInfo);
+
+                    //재화를 제외한 선물 아이템 조회
+                    $boxArray = $this->userRepository->getUserGiftBoxs($myBoxInfo);
+                    //인벤토리 등록
+                    for($i = 0; $i < count($boxArray); $i++){
+                        $myInventory = new UserInventoryInfo();
+                        $myInventory->setUserCode($data->decoded->data->userCode);
+
+                        if($boxArray[$i]['itemType'] == 1 || $boxArray[$i]['itemType'] == 2 || $boxArray[$i]['itemType'] == 5){
+                            //업그레이드 초기값 코드 조회
+                            $myUpgrade = new FishingItemUpgradeData();
+                            $myUpgrade->setItemGradeCode($boxArray[$i]['itemCode']);
+                            $myUpgrade->setItemType($boxArray[$i]['itemType']);
+                            $myUpgrade->setUpgradeLevel(1);
+                            $upgradeCode = $this->upgradeRepository->getFishingItemUpgradeCode($myUpgrade);
+
+                            $myInventory->setItemCode($boxArray[$i]['itemCode']);
+                            $myInventory->setItemType($boxArray[$i]['itemType']);
+                            $myInventory->setUpgradeCode($upgradeCode);
+                            $myInventory->setUpgradeLevel(1);
+                            $myInventory->setItemCount(1);
+                            if($boxArray[$i]['itemType'] == 1){
+                                $originalItem = $this->fishingRepository->getFishingRodGradeData($myInventory);
+                            } elseif ($boxArray[$i]['itemType'] == 2){
+                                $originalItem = $this->fishingRepository->getFishingLineGradeData($myInventory);
+                            } else {
+                                $originalItem = $this->fishingRepository->getFishingReelGradeData($myInventory);
+                            }
+                            $myInventory->setItemDurability($originalItem->getDurability());
+                            //인벤토리 등록
+                            for($j=0; $j<$boxArray[$i]['itemCount']; $j++){
+                                $this->userRepository->createUserInventoryInfo($myInventory);
+                            }
+                        }else{
+                            //인벤토리 여부 확인, 인벤토리 코드 return
+                            $search->setItemCode($boxArray[$i]['itemCode']);
+                            $search->setItemType($boxArray[$i]['itemType']);
+                            $inventoryCode = $this->userRepository->getUserInventoryCode($search);
+
+                            if ($inventoryCode != 0){
+                                //인벤토리에 같은 아이템 조회
+                                $myInventory->setInventoryCode($inventoryCode);
+                                $inventoryInfo = $this->userRepository->getUserInventory($myInventory);
+                                //인벤토리 등록 (카운트 증가)
+                                $inventoryInfo->setItemCount($inventoryInfo->getItemCount()+$boxArray[$i]['itemCount']);
+                                $this->userRepository->createUserInventoryInfo($inventoryInfo);
+                            }else{
+                                $myInventory->setItemCode($boxArray[$i]['itemCode']);
+                                $myInventory->setItemType($boxArray[$i]['itemType']);
+                                $myInventory->setUpgradeCode(0);
+                                $myInventory->setUpgradeLevel(0);
+                                $myInventory->setItemCount($boxArray[$i]['itemCount']);
+                                $myInventory->setItemDurability(1);
+                                //인벤토리 등록
+                                $this->userRepository->createUserInventoryInfo($myInventory);
+                            }
+                        }
+                    }
+                    //현재는 안씀.
+                    //$this->userRepository->createUserGiftBoxToInventory($myBoxInfo);
+                    //선물함(우편함) 읽음으로 수정
+                    $this->userRepository->modifyUserGiftBoxStatus($myBoxInfo);
+                    if (self::isRedisEnabled() === true) {
+                        $user = $this->userRepository->getUserInfo($userInfo);
+                        $this->saveInCache($user->getUserCode(), $user, self::USER_REDIS_KEY);
+                    }
+                    return [
+                        'message' => "선물들을 모두 받았습니다.",
+                    ];
+                }else{
+                    return [
+                        'message' => "선물(아이템)을 받으면 인벤토리가 넘칩니다. 인벤토리를 정리해주세요.",
+                    ];
                 }
-                return [
-                    'message' => "선물들을 모두 받았습니다.",
-                ];
             }else{
                 return [
-                    'message' => "선물(아이템)을 받으면 인벤토리가 넘칩니다. 인벤토리를 정리해주세요.",
+                    'message' => "이미 선물들을 모두 받았습니다.",
                 ];
             }
         }
+    }
+
+    public function deleteUserGiftBox(array $input): array
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myBoxInfo = new UserGitfBoxInfo();
+        $myBoxInfo->setUserCode($data->decoded->data->userCode);
+        if(!empty($data->boxCode)){
+            $myBoxInfo->setBoxCode($data->boxCode);
+        }else{
+            $myBoxInfo->setBoxCode(0);
+        }
+        $this->userRepository->deleteUserGiftBox($myBoxInfo);
+
+        $this->logger->info("delete user giftBox item service");
+        return [
+            'message' => "선물 아이템을 삭제했습니다.",
+        ];
+    }
+
+    public function modifyUserFishingItem(array $input): array{
+        $data = json_decode((string) json_encode($input), false);
+        $myChoiceItem = new UserChoiceItemInfo();
+        $myChoiceItem->setUserCode($data->decoded->data->userCode);
+        $myChoiceItem->setChoiceCode($data->choiceCode);
+        $choiceInfo = $this->userRepository->getUserFishingItem($myChoiceItem);
+
+        if(!empty($data->fishingRodCode)){
+            $choiceInfo->setFishingRodCode($data->fishingRodCode);
+        }
+        if(!empty($data->fishingLineCode)){
+            $choiceInfo->setFishingLineCode($data->fishingLineCode);
+        }
+        if(!empty($data->fishingNeedleCode)){
+            $choiceInfo->setFishingNeedleCode($data->fishingNeedleCode);
+        }
+        if(!empty($data->fishingBaitCode)){
+            $choiceInfo->setFishingBaitCode($data->fishingBaitCode);
+        }
+        if(!empty($data->fishingReelCode)){
+            $choiceInfo->setFishingReelCode($data->fishingReelCode);
+        }
+        if(!empty($data->fishingItemCode1)){
+            $choiceInfo->setFishingItemCode1($data->fishingItemCode1);
+        }
+        if(!empty($data->fishingItemCode2)){
+            $choiceInfo->setFishingItemCode2($data->fishingItemCode2);
+        }
+        if(!empty($data->fishingItemCode3)){
+            $choiceInfo->setFishingItemCode3($data->fishingItemCode3);
+        }
+        if(!empty($data->fishingItemCode4)){
+            $choiceInfo->setFishingItemCode4($data->fishingItemCode4);
+        }
+
+        //채비 수정
+        $this->userRepository->createUserFishingItem($choiceInfo);
+
+        $this->logger->info("update user fishing-item Service");
+        return [
+            'fishingItemInfo' => $choiceInfo,
+            'message' => "채비 장비를 수정했습니다.",
+        ];
+    }
+
+    public function deleteUserFishingItem(array $input): array
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myChoiceItem = new UserChoiceItemInfo();
+        $myChoiceItem->setUserCode($data->decoded->data->userCode);
+        $myChoiceItem->setChoiceCode($data->choiceCode);
+        $this->userRepository->deleteUserFishingItem($myChoiceItem);
+        $this->logger->info("delete user fishing-item service");
+        return [
+            'message' => "채비 장비를 삭제했습니다.",
+        ];
+    }
+
+    public function getUserFishDictionary(array $input): array
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $myDictionary = new UserFishDictionary();
+        $myDictionary->setUserCode($data->decoded->data->userCode);
+        $myDictionary->setMapFishCode($data->mapFishCode);
+        $dictionary = $this->userRepository->getUserFishDictionaryInfo($myDictionary);
+
+        $this->logger->info("get user fish dictionary service");
+        return [
+            'fishDictionary' => $dictionary,
+        ];
+    }
+
+    public function getUserFishDictionaryList(array $input): array
+    {
+        $data = json_decode((string) json_encode($input), false);
+        $search = new SearchInfo();
+        $search->setUserCode($data->decoded->data->userCode);
+        $search->setLimit($data->limit);
+        $search->setOffset($data->offset);
+
+        $dictionaryArray = $this->userRepository->getUserFishDictionaryList($search);
+        $dictionaryArrayCnt = $this->userRepository->getUserFishDictionaryListCnt($search);
+        $this->logger->info("get list user fish dictionary service");
+        return [
+            'fishDictionaryList' => $dictionaryArray,
+            'totalCount' => $dictionaryArrayCnt,
+        ];
     }
 
     protected function saveInCache(int $userCode, object $user, string $redisKey): void

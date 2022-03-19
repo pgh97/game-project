@@ -5,6 +5,7 @@ namespace App\Infrastructure\Persistence\User;
 use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\User\Entity\UserChoiceItemInfo;
+use App\Domain\User\Entity\UserFishDictionary;
 use App\Domain\User\Entity\UserFishInventoryInfo;
 use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
@@ -573,6 +574,36 @@ class UserDBRepository extends BaseRepository implements UserRepository
         }
     }
 
+    public function getUserInventoryUpgradeItem(SearchInfo $searchInfo): UserInventoryInfo
+    {
+        $query = '
+            SELECT 
+                inventory_code          AS inventoryCode
+                ,user_code              AS userCode
+                ,item_code              AS itemCode
+                ,item_type              AS itemType
+                ,upgrade_code           AS upgradeCode
+                ,upgrade_level          AS upgradeLevel
+                ,item_count             AS itemCount
+                ,item_durability         AS itemDurability
+                ,create_date            AS createDate
+            FROM `user_inventory_info`
+            WHERE user_code = :userCode AND item_code=:itemCode AND item_type=:itemType
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $itemCode = $searchInfo->getItemCode();
+        $itemType = $searchInfo->getItemType();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->execute();
+
+        return $statement->fetchObject(UserInventoryInfo::class);
+    }
+
     public function getUserInventoryUpgradeItems(SearchInfo $searchInfo): array
     {
         $query = '
@@ -731,7 +762,7 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $fishingItemCode4 = $choiceItemInfo->getFishingItemCode4();
 
         if(!empty($choiceItemInfo->getChoiceCode())){
-            $choiceCode = $choiceItemInfo->getAccountCode();
+            $choiceCode = $choiceItemInfo->getChoiceCode();
             $statement->bindParam(':choiceCode', $choiceCode);
         }
 
@@ -1030,6 +1061,30 @@ class UserDBRepository extends BaseRepository implements UserRepository
         return $statement->fetchColumn();
     }
 
+    public function getUserGiftBoxs(UserGitfBoxInfo $boxInfo): array
+    {
+        $query = '
+            SELECT 
+                box_code                AS boxCode
+                ,user_code              AS userCode
+                ,item_code              AS itemCode
+                ,item_type              AS itemType
+                ,item_count             AS itemCount
+                ,read_status            AS readStatus
+                ,create_date            AS createDate
+            FROM `user_gift_box_info`
+            WHERE user_code = :userCode AND item_type != 99 AND read_status=0
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $boxInfo->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return (array) $statement->fetchAll();
+    }
+
     public function getUserGiftBoxList(SearchInfo $searchInfo): array
     {
         $query = '
@@ -1081,6 +1136,23 @@ class UserDBRepository extends BaseRepository implements UserRepository
             $statement->bindParam(':itemType', $itemType);
         }
 
+        $statement->execute();
+
+        return $statement->fetchColumn();
+    }
+
+    public function getUserGiftBoxFishingItemSum(SearchInfo $searchInfo): int
+    {
+        $query = '
+            SELECT 
+                IF(sum(item_count) IS NULL, 0, sum(item_count))    AS count
+            FROM `user_gift_box_info`
+            WHERE user_code = :userCode AND (item_type=1 OR item_type=2 OR item_type=5) AND read_status=0
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $statement->bindParam(':userCode', $userCode);
         $statement->execute();
 
         return $statement->fetchColumn();
@@ -1289,4 +1361,128 @@ class UserDBRepository extends BaseRepository implements UserRepository
         return (int) $this->database->lastInsertId();
     }
 
+    public function deleteUserFishingItem(UserChoiceItemInfo $choiceItemInfo): int
+    {
+        $query = '
+            DELETE 
+            FROM `user_choice_item_info`
+            WHERE choice_code =:choiceCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $choiceCode= $choiceItemInfo->getChoiceCode();
+
+        $statement->bindParam(':choiceCode', $choiceCode);
+        $statement->execute();
+        return $statement->rowCount();
+    }
+
+    public function deleteUserGiftBox(UserGitfBoxInfo $boxInfo): int
+    {
+        $query = '
+            DELETE 
+            FROM `user_gift_box_info`
+            WHERE user_code =:userCode AND read_status=1 
+        ';
+
+        if (!empty($boxInfo->getBoxCode())){
+            $query .= 'AND box_code=:boxCode';
+        }
+
+        $statement = $this->database->prepare($query);
+        $userCode = $boxInfo->getUserCode();
+        $statement->bindParam(':userCode', $userCode);
+
+        if (!empty($boxInfo->getBoxCode())){
+            $boxCode = $boxInfo->getBoxCode();
+            $statement->bindParam(':boxCode', $boxCode);
+        }
+
+        $statement->execute();
+        return $statement->rowCount();
+    }
+
+    public function getUserFishDictionaryList(SearchInfo $searchInfo): array
+    {
+        $query = '
+            SELECT 
+                UFD.map_fish_code      AS mapFishCode 
+                ,FI.fish_code          AS fishCode
+                ,FI.fish_name          AS fishName
+                ,FI.min_depth          AS minDepth
+                ,FI.max_depth          AS maxDepth
+                ,FI.min_size           AS minSize
+                ,FI.max_size           AS maxSize
+                ,FI.fish_probability   AS fishProbability
+                ,FI.fish_durability    AS fishDurability
+                ,UFD.create_date        AS createDate
+            FROM user_fish_dictionary UFD
+            JOIN map_fish_data MF ON UFD.map_fish_code = MF.map_fish_code
+            JOIN fish_info_data FI ON MF.fish_code = FI.fish_code
+            WHERE UFD.user_code = :userCode
+            ORDER BY FI.fish_code
+            LIMIT :offset , :limit
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+        $offset = $searchInfo->getOffset();
+        $limit = $searchInfo->getLimit();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':offset', $offset);
+        $statement->bindParam(':limit', $limit);
+        $statement->execute();
+
+        return (array) $statement->fetchAll();
+    }
+
+    public function getUserFishDictionaryListCnt(SearchInfo $searchInfo): int
+    {
+        $query = '
+            SELECT 
+                COUNT(*)    AS count
+            FROM `user_fish_dictionary`
+            WHERE user_code = :userCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $searchInfo->getUserCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->execute();
+
+        return $statement->fetchColumn();
+    }
+
+    public function getUserFishDictionaryInfo(UserFishDictionary $dictionary): array
+    {
+        $query = '
+            SELECT 
+                UFD.map_fish_code      AS mapFishCode 
+                ,FI.fish_code          AS fishCode
+                ,FI.fish_name          AS fishName
+                ,FI.min_depth          AS minDepth
+                ,FI.max_depth          AS maxDepth
+                ,FI.min_size           AS minSize
+                ,FI.max_size           AS maxSize
+                ,FI.fish_probability   AS fishProbability
+                ,FI.fish_durability    AS fishDurability
+                ,UFD.create_date        AS createDate
+            FROM user_fish_dictionary UFD
+            JOIN map_fish_data MF ON UFD.map_fish_code = MF.map_fish_code
+            JOIN fish_info_data FI ON MF.fish_code = FI.fish_code
+            WHERE UFD.user_code = :userCode AND UFD.map_fish_code = :mapFishCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $userCode = $dictionary->getUserCode();
+        $mapFishCode = $dictionary->getMapFishCode();
+
+        $statement->bindParam(':userCode', $userCode);
+        $statement->bindParam(':mapFishCode', $mapFishCode);
+        $statement->execute();
+
+        return (array) $statement->fetchAll();
+    }
 }

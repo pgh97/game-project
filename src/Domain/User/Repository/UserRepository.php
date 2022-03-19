@@ -5,6 +5,7 @@ namespace App\Domain\User\Repository;
 use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\User\Entity\UserChoiceItemInfo;
+use App\Domain\User\Entity\UserFishDictionary;
 use App\Domain\User\Entity\UserFishInventoryInfo;
 use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
@@ -125,6 +126,12 @@ interface UserRepository
 
     /**
      * @param SearchInfo $searchInfo
+     * @return UserInventoryInfo
+     */
+    public function getUserInventoryUpgradeItem(SearchInfo $searchInfo): UserInventoryInfo;
+
+    /**
+     * @param SearchInfo $searchInfo
      * @return array
      */
     public function getUserInventoryUpgradeItems(SearchInfo $searchInfo): array;
@@ -220,6 +227,18 @@ interface UserRepository
     public function getUserGiftBoxListCnt(SearchInfo $searchInfo): int;
 
     /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function getUserGiftBoxFishingItemSum(SearchInfo $searchInfo): int;
+
+    /**
+     * @param UserGitfBoxInfo $boxInfo
+     * @return array
+     */
+    public function getUserGiftBoxs(UserGitfBoxInfo $boxInfo): array;
+
+    /**
      * @param UserGitfBoxInfo $boxInfo
      * @return UserGitfBoxInfo
      */
@@ -261,5 +280,33 @@ interface UserRepository
      */
     public function modifyUserInfoGiftBox(UserGitfBoxInfo $boxInfo): int;
 
+    /**
+     * @param UserChoiceItemInfo $choiceItemInfo
+     * @return int
+     */
+    public function deleteUserFishingItem(UserChoiceItemInfo $choiceItemInfo): int;
 
+    /**
+     * @param UserGitfBoxInfo $boxInfo
+     * @return int
+     */
+    public function deleteUserGiftBox(UserGitfBoxInfo $boxInfo): int;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return array
+     */
+    public function getUserFishDictionaryList(SearchInfo $searchInfo): array;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return int
+     */
+    public function getUserFishDictionaryListCnt(SearchInfo $searchInfo): int;
+
+    /**
+     * @param UserFishDictionary $dictionary
+     * @return array
+     */
+    public function getUserFishDictionaryInfo(UserFishDictionary $dictionary): array;
 }

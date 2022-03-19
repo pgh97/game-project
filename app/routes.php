@@ -41,20 +41,21 @@ return function (App $app) {
             $user->post('/my-weather', Actions\User\GetWeatherInfoAction::class);
             $user->post('/my-weather/change', Actions\User\ModifyWeatherAction::class);
             $user->post('/my-ship', Actions\User\GetUserShipAction::class);
-            //$user->post('/fish-dictionary', );
+            $user->post('/fish-dictionarys', Actions\User\GetUserFishDictionaryListAction::class);
+            $user->post('/fish-dictionary', Actions\User\GetUserFishDictionaryAction::class);
             $user->post('/inventory-items', Actions\User\GetUserInventoryListAction::class);
             $user->post('/inventory-item', Actions\User\GetUserInventoryAction::class);
             //$user->post('/inventory-item/change', Actions\User\ModifyUserInventoryAction::class);
             $user->post('/inventory-item/remove', Actions\User\DeleteUserInventoryAction::class);
             $user->post('/fishing-items', Actions\User\GetUserFishingItemListAction::class);
             $user->post('/fishing-item', Actions\User\GetUserFishingItemAction::class);
-            $user->post('/fishing-item/change', Actions\User\CreateUserFishingItemAction::class);
-            //$user->post('/fishing-item/change', );
-            //$user->post('/fishing-item/remove', );
+            $user->post('/fishing-item/save', Actions\User\CreateUserFishingItemAction::class);
+            $user->post('/fishing-item/change', Actions\User\ModifyUserFishingItemAction::class);
+            $user->post('/fishing-item/remove', Actions\User\DeleteUserFishingItemAction::class);
             $user->post('/gift-boxs', Actions\User\GetUserGiftBoxListAction::class);
             $user->post('/gift-box', Actions\User\GetUserGiftBoxAction::class);
             $user->post('/gift-box/change', Actions\User\ModifyUserGiftBoxAction::class);
-            //$user->post('/gift-box/remove', );
+            $user->post('/gift-box/remove', Actions\User\DeleteUserGiftBoxAction::class);
         })->add(new JWTAuthMiddleware());
 
         $group->group('/map', function (Group $map){
@@ -87,7 +88,7 @@ return function (App $app) {
         })->add(new JWTAuthMiddleware());
 
         $group->group('/repair', function (Group $repair){
-            //$repair->post('/user', Actions\Repair\ModifyRepairUserAction::class);
+            $repair->post('/user', Actions\Repair\ModifyRepairUserAction::class);
             $repair->post('/item', Actions\Repair\ModifyRepairItemAction::class);
         })->add(new JWTAuthMiddleware());
 

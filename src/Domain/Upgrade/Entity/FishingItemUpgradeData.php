@@ -8,7 +8,7 @@ class FishingItemUpgradeData implements JsonSerializable
 {
     private int $upgradeCode;
     private int $itemGradeCode;
-    private int $itemType;  //낚시대: 1, 낚시줄: 2, 릴: 3
+    private int $itemType;  //낚시대: 1, 낚시줄: 2, 릴: 5 (인벤토리와 같음)
     private int $upgradeLevel;
     private int $upgradeItemCode;
     private int $upgradeItemCount;

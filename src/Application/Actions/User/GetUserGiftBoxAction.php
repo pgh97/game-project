@@ -13,8 +13,8 @@ class GetUserGiftBoxAction extends UserAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new UserService($this->logger, $this->userRepository
-            ,$this->commonRepository, $this->redisService);
+        $service = new UserService($this->logger, $this->userRepository, $this->upgradeRepository
+            , $this->fishingRepository,$this->commonRepository, $this->redisService);
         $payload = array();
         $payload['userGiftBoxInfo'] = $service->getUserGiftBox($input);
         $this->logger->info("get user gift box Action");

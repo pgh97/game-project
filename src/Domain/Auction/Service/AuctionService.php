@@ -22,8 +22,8 @@ class AuctionService extends BaseService
     protected LoggerInterface $logger;
 
     private const USER_REDIS_KEY = 'user:%s';
-    private const AUCTION_RANK_GOLD = 'AUCTION_RANK_GOLD';
-    private const AUCTION_RANK_PEARL = 'AUCTION_RANK_PEARL';
+    private const AUCTION_RANK_GOLD = 'AUCTION_RANK_GOLD:%s';
+    private const AUCTION_RANK_PEARL = 'AUCTION_RANK_PEARL:%s';
 
     public function __construct(LoggerInterface $logger
         ,AuctionRepository $auctionRepository
@@ -135,13 +135,23 @@ class AuctionService extends BaseService
             $myRank->setPriceSum($addPrice);
             $this->auctionRepository->createAuctionRank($myRank);
 
+            //$dayName = array("일","월","화","수","목","금","토");
+            if(date('w', strtotime($currentDay)) == 0) {
+                $currentDay = date("Y-m-d", strtotime("-6 day"));
+            } elseif (date('w', strtotime($currentDay)) == 1) {
+                $currentDay = date("Y-m-d");
+            } else {
+                $numDay = date('w', strtotime($currentDay)) -1;
+                $currentDay = date("Y-m-d", strtotime("-".$numDay." day"));
+            }
+
             if (self::isRedisEnabled() === true) {
                 $userInfo = $this->userRepository->getUserInfo($userInfo);
                 $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
                 if($auctionInfo->getMoneyCode() == 1){
-                    $this->saveInAddRank($data->decoded->data->userCode, $addPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_GOLD);
+                    $this->saveInAddRank($data->decoded->data->userCode, $addPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_GOLD, $currentDay);
                 }elseif($auctionInfo->getMoneyCode() == 2){
-                    $this->saveInAddRank($data->decoded->data->userCode, $addPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_PEARL);
+                    $this->saveInAddRank($data->decoded->data->userCode, $addPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_PEARL, $currentDay);
                 }
             }
             return [
@@ -168,24 +178,36 @@ class AuctionService extends BaseService
         }
 
         //7일전까지의 랭킹 목록 조회
-        $myRankInfo = new AuctionRanking();
+        /*$myRankInfo = new AuctionRanking();
         $myRankInfo->setMoneyCode($data->moneyCode);
-        $rankInfoList = $this->auctionRepository->getAuctionRankList($myRankInfo);
-        //rankInfoList[0]['priceSum']
+        $rankInfoList = $this->auctionRepository->getAuctionRankList($myRankInfo);*/
 
-        //redis에 등록
-        for ($i = 0; $i < count($rankInfoList); $i++){
-            if($data->moneyCode == 1){
-                $this->saveInRank($rankInfoList[$i]['userCode'], $rankInfoList[$i]['priceSum'],self::USER_REDIS_KEY,self::AUCTION_RANK_GOLD);
-            }elseif($data->moneyCode == 2){
-                $this->saveInRank($rankInfoList[$i]['userCode'], $rankInfoList[$i]['priceSum'],self::USER_REDIS_KEY,self::AUCTION_RANK_PEARL);
-            }
+        date_default_timezone_set('Asia/Seoul');
+        $currentDay = date("Y-m-d");
+        //$dayName = array("일","월","화","수","목","금","토");
+        if(date('w', strtotime($currentDay)) == 0) {
+            $currentDay = date("Y-m-d", strtotime("-6 day"));
+        } elseif (date('w', strtotime($currentDay)) == 1) {
+            $currentDay = date("Y-m-d");
+        } else {
+            $numDay = date('w', strtotime($currentDay)) -1;
+            $currentDay = date("Y-m-d", strtotime("-".$numDay." day"));
         }
 
+        //redis에 등록
+        /*for ($i = 0; $i < count($rankInfoList); $i++){
+            if($data->moneyCode == 1){
+                $this->saveInRank($rankInfoList[$i]['userCode'], 0,self::USER_REDIS_KEY,self::AUCTION_RANK_GOLD, $currentDay);
+            }elseif($data->moneyCode == 2){
+                $this->saveInRank($rankInfoList[$i]['userCode'], 0,self::USER_REDIS_KEY,self::AUCTION_RANK_PEARL, $currentDay);
+            }
+        }*/
+
+        //redis에 랭킹 조회
         if($data->moneyCode == 1){
-            $rankInfoList = $this->getArrayRank(self::AUCTION_RANK_GOLD, 0,-1);
+            $rankInfoList = $this->getArrayRank(self::AUCTION_RANK_GOLD, 0,-1, $currentDay);
         }elseif($data->moneyCode == 2){
-            $rankInfoList = $this->getArrayRank(self::AUCTION_RANK_PEARL,0,-1);
+            $rankInfoList = $this->getArrayRank(self::AUCTION_RANK_PEARL,0,-1, $currentDay);
         }else{
             $rankInfoList = NULL;
         }
@@ -203,10 +225,16 @@ class AuctionService extends BaseService
         }
 
         $this->logger->info("get auction ranking service");
-        return [
-            'infoList' => $rankList,
-            'message' => "테스트",
-        ];
+        if(array_filter($rankList)){
+            return [
+                'auctionRankList' => $rankList,
+                'message' => null,
+            ];
+        }else{
+            return [
+                'message' => "현재 측정된 랭킹이 없습니다.",
+            ];
+        }
     }
 
     protected function saveInCache(int $userCode, object $user, string $redisKey): void
@@ -224,18 +252,22 @@ class AuctionService extends BaseService
         $this->redisService->del([$key]);
     }
 
-    protected function saveInAddRank(int $userCode, int $score, string $redisId, string $redisKey): void
+    protected function saveInAddRank(int $userCode, int $score, string $redisId, string $redisKey, string $date): void
     {
         $redisId = sprintf($redisId, $userCode);
         $id = $this->redisService->generateKey($redisId);
+
+        $redisKey = sprintf($redisKey, $date);
         $redisKey = $this->redisService->generateKey($redisKey);
         $this->redisService->zincrby($redisKey, $id, $score);
     }
 
-    protected function saveInRank(int $userCode, int $score, string $redisId, string $redisKey): void
+    protected function saveInRank(int $userCode, int $score, string $redisId, string $redisKey, string $date): void
     {
         $redisId = sprintf($redisId, $userCode);
         $id = $this->redisService->generateKey($redisId);
+
+        $redisKey = sprintf($redisKey, $date);
         $redisKey = $this->redisService->generateKey($redisKey);
         $this->redisService->zadd($redisKey, $id, $score);
     }
@@ -267,8 +299,9 @@ class AuctionService extends BaseService
         return $userInfo;
     }
 
-    protected function getArrayRank(string $redisKey , int $startRank , int $endRank):array
+    protected function getArrayRank(string $redisKey , int $startRank , int $endRank, string $date):array
     {
+        $redisKey = sprintf($redisKey, $date);
         $redisKey = $this->redisService->generateKey($redisKey);
         return $this->redisService->zrevrange($redisKey, $startRank, $endRank);
     }

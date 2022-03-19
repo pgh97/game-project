@@ -60,4 +60,25 @@ class UpgradeDBRepository extends BaseRepository implements UpgradeRepository
         $statement->execute();
         return $statement->fetchObject(ShipItemUpgradeData::class);
     }
+
+    public function getFishingItemUpgradeCode(FishingItemUpgradeData $upgradeData): int
+    {
+        $query = '
+            SELECT 
+                upgrade_code             AS upgradeCode
+            FROM `fishing_item_upgrade_data`
+            WHERE item_grade_code=:itemGradeCode AND item_type=:itemType AND upgrade_level=:upgradeLevel
+        ';
+
+        $statement = $this->database->prepare($query);
+        $itemGradeCode = $upgradeData->getItemGradeCode();
+        $itemType = $upgradeData->getItemType();
+        $upgradeLevel = $upgradeData->getUpgradeLevel();
+
+        $statement->bindParam(':itemGradeCode', $itemGradeCode);
+        $statement->bindParam(':itemType', $itemType);
+        $statement->bindParam(':upgradeLevel', $upgradeLevel);
+        $statement->execute();
+        return $statement->fetchColumn();
+    }
 }

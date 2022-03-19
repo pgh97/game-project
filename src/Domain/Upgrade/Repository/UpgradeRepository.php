@@ -14,6 +14,12 @@ interface UpgradeRepository
     public function getFishingItemUpgradeData(FishingItemUpgradeData $upgradeData): FishingItemUpgradeData;
 
     /**
+     * @param FishingItemUpgradeData $upgradeData
+     * @return int
+     */
+    public function getFishingItemUpgradeCode(FishingItemUpgradeData $upgradeData): int;
+
+    /**
      * @param ShipItemUpgradeData $upgradeData
      * @return ShipItemUpgradeData
      */
