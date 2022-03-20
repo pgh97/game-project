@@ -3,7 +3,9 @@
 namespace App\Infrastructure\Persistence\Fishing;
 
 use App\Domain\Common\Entity\SearchInfo;
+use App\Domain\Fishing\Entity\FishingBaitGradeData;
 use App\Domain\Fishing\Entity\FishingLineGradeData;
+use App\Domain\Fishing\Entity\FishingNeedleGradeData;
 use App\Domain\Fishing\Entity\FishingReelGradeData;
 use App\Domain\Fishing\Entity\FishingRodGradeData;
 use App\Domain\User\Entity\UserFishInventoryInfo;
@@ -208,5 +210,48 @@ class FishingDBRepository extends BaseRepository implements FishingRepository
         $statement->bindParam(':itemCode', $itemCode);
         $statement->execute();
         return $statement->fetchObject(FishingReelGradeData::class);
+    }
+
+    public function getFishingNeedleGradeData(UserInventoryInfo $inventoryInfo): FishingNeedleGradeData
+    {
+        $query = '
+            SELECT 
+                item_grade_code              AS itemGradeCode
+                ,item_code                   AS itemCode
+                ,grade_code                  AS gradeCode
+                ,suppress_probability        AS suppressProbability
+                ,hooking_probability         AS hookingProbability
+                ,create_date                 AS createDate
+            FROM `fishing_needle_grade_data`
+            WHERE item_grade_code = :itemCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $itemCode = $inventoryInfo->getItemCode();
+
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->execute();
+        return $statement->fetchObject(FishingNeedleGradeData::class);
+    }
+
+    public function getFishingBaitGradeData(UserInventoryInfo $inventoryInfo): FishingBaitGradeData
+    {
+        $query = '
+            SELECT 
+                item_grade_code              AS itemGradeCode
+                ,item_code                   AS itemCode
+                ,grade_code                  AS gradeCode
+                ,fish_probability            AS fishProbability
+                ,create_date                 AS createDate
+            FROM `fishing_bait_grade_data`
+            WHERE item_grade_code = :itemCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $itemCode = $inventoryInfo->getItemCode();
+
+        $statement->bindParam(':itemCode', $itemCode);
+        $statement->execute();
+        return $statement->fetchObject(FishingBaitGradeData::class);
     }
 }

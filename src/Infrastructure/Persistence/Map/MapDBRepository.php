@@ -4,6 +4,7 @@ namespace App\Infrastructure\Persistence\Map;
 
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\Map\Entity\MapInfoData;
+use App\Domain\Map\Entity\MapItemData;
 use App\Domain\Map\Entity\MapTideData;
 use App\Domain\Map\Repository\MapRepository;
 use App\Infrastructure\Persistence\BaseRepository;
@@ -190,5 +191,49 @@ class MapDBRepository extends BaseRepository implements MapRepository
         $statement->bindParam(':mapCode', $mapCode);
         $statement->execute();
         return (array) $statement->fetchAll();
+    }
+
+    public function getMapItemList(SearchInfo $searchInfo): array
+    {
+        $query = '
+            SELECT 
+            map_item_code        As mapItemCode
+            ,map_code            AS mapCode
+            ,item_code           AS itemCode
+            ,item_type           AS itemType
+            ,item_probability    AS itemProbability
+            ,create_date         AS createDate
+            FROM `map_item_data`
+            WHERE map_code = :mapCode;
+        ';
+
+        $statement = $this->database->prepare($query);
+        $mapCode = $searchInfo->getItemCode();
+
+        $statement->bindParam(':mapCode', $mapCode);
+        $statement->execute();
+        return (array) $statement->fetchAll();
+    }
+
+    public function getMapItemInfo(MapItemData $mapItemData): MapItemData
+    {
+        $query = '
+            SELECT 
+            map_item_code        As mapItemCode
+            ,map_code            AS mapCode
+            ,item_code           AS itemCode
+            ,item_type           AS itemType
+            ,item_probability    AS itemProbability
+            ,create_date         AS createDate
+            FROM `map_item_data`
+            WHERE map_item_code = :mapItemCode;
+        ';
+
+        $statement = $this->database->prepare($query);
+        $mapItemCode = $mapItemData->getMapItemCode();
+
+        $statement->bindParam(':mapItemCode', $mapItemCode);
+        $statement->execute();
+        return $statement->fetchObject(MapItemData::class);
     }
 }

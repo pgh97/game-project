@@ -4,6 +4,7 @@ namespace App\Domain\Map\Repository;
 
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\Map\Entity\MapInfoData;
+use App\Domain\Map\Entity\MapItemData;
 use App\Domain\Map\Entity\MapTideData;
 
 interface MapRepository
@@ -43,4 +44,15 @@ interface MapRepository
      * @return array
      */
     public function getMapFishList(SearchInfo $searchInfo): array;
+
+    /**
+     * @param SearchInfo $searchInfo
+     * @return array
+     */
+    public function getMapItemList(SearchInfo $searchInfo): array;
+    /**
+     * @param MapItemData $mapItemData
+     * @return MapItemData
+     */
+    public function getMapItemInfo(MapItemData $mapItemData): MapItemData;
 }

@@ -12,10 +12,13 @@ use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
 use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Map\Entity\MapInfoData;
+use App\Domain\Map\Entity\MapItemData;
 use App\Domain\Map\Entity\MapTideData;
 use App\Domain\Map\Repository\MapRepository;
 use App\Domain\Quest\Entity\QuestInfoData;
 use App\Domain\Quest\Repository\QuestRepository;
+use App\Domain\Upgrade\Entity\FishingItemUpgradeData;
+use App\Domain\Upgrade\Repository\UpgradeRepository;
 use App\Domain\User\Entity\UserChoiceItemInfo;
 use App\Domain\User\Entity\UserFishInventoryInfo;
 use App\Domain\User\Entity\UserGitfBoxInfo;
@@ -32,6 +35,7 @@ class FishingService extends BaseService
     protected UserRepository $userRepository;
     protected MapRepository $mapRepository;
     protected QuestRepository $questRepository;
+    protected UpgradeRepository $upgradeRepository;
     protected CommonRepository $commonRepository;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
@@ -47,6 +51,7 @@ class FishingService extends BaseService
         ,UserRepository $userRepository
         ,MapRepository $mapRepository
         ,QuestRepository $questRepository
+        ,UpgradeRepository $upgradeRepository
         ,CommonRepository $commonRepository
         ,RedisService $redisService)
     {
@@ -55,6 +60,7 @@ class FishingService extends BaseService
         $this->userRepository = $userRepository;
         $this->mapRepository = $mapRepository;
         $this->questRepository = $questRepository;
+        $this->upgradeRepository = $upgradeRepository;
         $this->commonRepository = $commonRepository;
         $this->redisService = $redisService;
     }
@@ -117,6 +123,8 @@ class FishingService extends BaseService
             $myTideInfo->setSort(1);
             $mapTideInfo = $this->mapRepository->getMapTideInfo($myTideInfo);
        }
+        //채비 수심 +- 10까지
+        $fishingItemDepth = $data->depth;
         //채비
         $choiceItem = new UserChoiceItemInfo();
         $choiceItem->setUserCode($data->decoded->data->userCode);
@@ -126,20 +134,35 @@ class FishingService extends BaseService
         $myUserInventory = new UserInventoryInfo();
         $myUserInventory->setUserCode($data->decoded->data->userCode);
         $myUserInventory->setInventoryCode($choiceItem->getFishingRodCode());
-        //낚시대
+        //인벤토리 낚시대
         $inventoryRod = $this->userRepository->getUserInventory($myUserInventory);
-        //낚시줄
+        //낚시대 등급 정보
+        $itemRod = $this->fishingRepository->getFishingRodGradeData($inventoryRod);
+
+        //인벤토리 낚시줄
         $myUserInventory->setInventoryCode($choiceItem->getFishingLineCode());
         $inventoryLine = $this->userRepository->getUserInventory($myUserInventory);
-        //바늘
+        //낚시줄 등급 정보
+        $itemLine = $this->fishingRepository->getFishingLineGradeData($inventoryLine);
+
+        //인벤토리 바늘
         $myUserInventory->setInventoryCode($choiceItem->getFishingNeedleCode());
         $inventoryNeedle = $this->userRepository->getUserInventory($myUserInventory);
-        //미끼
+        //바늘 등급 정보
+        $itemNeedle = $this->fishingRepository->getFishingNeedleGradeData($inventoryNeedle);
+
+        //인벤토리 미끼
         $myUserInventory->setInventoryCode($choiceItem->getFishingBaitCode());
         $inventoryBait = $this->userRepository->getUserInventory($myUserInventory);
-        //릴
+        //미끼 등급 정보
+        $itemBait = $this->fishingRepository->getFishingBaitGradeData($inventoryBait);
+
+        //인벤토리 릴
         $myUserInventory->setInventoryCode($choiceItem->getFishingReelCode());
         $inventoryReel = $this->userRepository->getUserInventory($myUserInventory);
+        //릴 등급 정보
+        $itemReel = $this->fishingRepository->getFishingReelGradeData($inventoryReel);
+
         //낚시 아이템1
         $myUserInventory->setInventoryCode($choiceItem->getFishingItemCode1());
         $inventoryItem1 = $this->userRepository->getUserInventory($myUserInventory);
@@ -175,8 +198,8 @@ class FishingService extends BaseService
             $search->setUserCode($data->decoded->data->userCode);
             $fishList = $this->mapRepository->getMapFishList($search);
 
-            //지역별 부품 리스트
-            //물고기 코드 리스트에 99를 넣어서 확률 재단(추가 개발)
+            //지역별 부품 리스트 (물고기 리스트에 0임)
+            $itemList = $this->mapRepository->getMapItemList($search);
 
             //조수간만차 계산
             date_default_timezone_set('Asia/Seoul');
@@ -201,7 +224,9 @@ class FishingService extends BaseService
             }
 
             $fishCodeArray = array();
+            $fishCodeArray[] = 0;
             $percentArray = array();
+            $percentArray[] = 1;
 
             if(strtotime($mapTideInfo->getHighTideTime1()) < strtotime($currentTime)
                 && strtotime($mapTideInfo->getLowTideTime1()) > strtotime($currentTime)){
@@ -209,12 +234,28 @@ class FishingService extends BaseService
                 $currentTimeDif1= strtotime($currentTime) - strtotime($mapTideInfo->getHighTideTime1());
                 $current1 = floor($currentTimeDif1/(60*60));
                 $delDepth = floor($depth/$timeDif1) * $current1;
+                //조수간만차에 따라 최대 수심 감소
                 $mapInfo->setMaxDepth($mapInfo->getMaxDepth()-$delDepth);
 
+                //채비 수심 정하기
+                if($mapInfo->getMaxDepth() >= $fishingItemDepth + 10){
+                    $maxDepth = $fishingItemDepth+10;
+                }else{
+                    $maxDepth = $mapInfo->getMaxDepth();
+                }
+
+                if($mapInfo->getMinDepth() >= $fishingItemDepth - 10){
+                    $minDepth = $fishingItemDepth-10;
+                }else{
+                    $minDepth = $mapInfo->getMinDepth();
+                }
+
                 for ($i=0; $i<count($fishList); $i++){
-                    if($mapInfo->getMaxDepth() > $fishList[$i]['minDepth']){
-                        array_push($fishCodeArray, $fishList[$i]['fishCode']);
-                        array_push($percentArray, $fishList[$i]['fishProbability']);
+                    if($maxDepth >= $fishList[$i]['minDepth']){
+                        if($minDepth <= $fishList[$i]['minDepth']){
+                            $fishCodeArray[] = $fishList[$i]['fishCode'];
+                            $percentArray[] = $fishList[$i]['fishProbability']+$itemBait->getFishProbability();
+                        }
                     }
                 }
 
@@ -224,41 +265,77 @@ class FishingService extends BaseService
                 $currentTimeDif2= strtotime($currentTime) - strtotime($mapTideInfo->getHighTideTime2());
                 $current2 = floor($currentTimeDif2/(60*60));
                 $delDepth = floor($depth/$timeDif2) * $current2;
-                $mapInfo->setMinDepth($mapInfo->getMaxDepth()-$delDepth);
+                //조수간만차에 따라 최대 수심 감소
+                $mapInfo->setMaxDepth($mapInfo->getMaxDepth()-$delDepth);
+
+                //채비 수심 정하기
+                if($mapInfo->getMaxDepth() >= $fishingItemDepth + 10){
+                    $maxDepth = $fishingItemDepth+10;
+                }else{
+                    $maxDepth = $mapInfo->getMaxDepth();
+                }
+
+                if($mapInfo->getMinDepth() >= $fishingItemDepth - 10){
+                    $minDepth = $fishingItemDepth-10;
+                }else{
+                    $minDepth = $mapInfo->getMinDepth();
+                }
 
                 for ($i=0; $i<count($fishList); $i++){
-                    if($mapInfo->getMaxDepth() > $fishList[$i]['minDepth']){
-                        array_push($fishCodeArray, $fishList[$i]['fishCode']);
-                        array_push($percentArray, $fishList[$i]['fishProbability']);
+                    if($maxDepth >= $fishList[$i]['minDepth']){
+                        if($minDepth <= $fishList[$i]['minDepth']){
+                            $fishCodeArray[] = $fishList[$i]['fishCode'];
+                            $percentArray[] = $fishList[$i]['fishProbability']+$itemBait->getFishProbability();
+                        }
                     }
                 }
             }else{
-                if(strtotime($mapTideInfo->getHighTideTime1()) == strtotime($currentTime)){
+                if(strtotime($mapTideInfo->getHighTideTime1()) == strtotime($currentTime) || strtotime($mapTideInfo->getHighTideTime2()) == strtotime($currentTime)){
+                    //조수간만차에 따라 최소 수심 증가
+                    $mapInfo->setMinDepth($mapInfo->getMaxDepth());
+                    //채비 수심 정하기
+                    if($mapInfo->getMaxDepth() >= $fishingItemDepth + 10){
+                        $maxDepth = $fishingItemDepth+10;
+                    }else{
+                        $maxDepth = $mapInfo->getMaxDepth();
+                    }
+
+                    if($mapInfo->getMinDepth() >= $fishingItemDepth - 10){
+                        $minDepth = $fishingItemDepth-10;
+                    }else{
+                        $minDepth = $mapInfo->getMinDepth();
+                    }
+
                     for ($i=0; $i<count($fishList); $i++){
-                        if($mapInfo->getMaxDepth() > $fishList[$i]['minDepth']){
-                            array_push($fishCodeArray, $fishList[$i]['fishCode']);
-                            array_push($percentArray, $fishList[$i]['fishProbability']+$mapTideInfo->getAppearProbability());
+                        if($maxDepth >= $fishList[$i]['minDepth']){
+                            if($minDepth <= $fishList[$i]['minDepth']){
+                                $fishCodeArray[] = $fishList[$i]['fishCode'];
+                                $percentArray[] = abs($fishList[$i]['fishProbability']+$mapTideInfo->getAppearProbability())+$itemBait->getFishProbability();
+                            }
                         }
                     }
-                }else if(strtotime($mapTideInfo->getLowTideTime1()) == strtotime($currentTime)){
-                    for ($i=0; $i<count($fishList); $i++){
-                        if($mapInfo->getMaxDepth() > $fishList[$i]['minDepth']){
-                            array_push($fishCodeArray, $fishList[$i]['fishCode']);
-                            array_push($percentArray, abs($fishList[$i]['fishProbability']-$mapTideInfo->getAppearProbability()));
-                        }
+                }else if(strtotime($mapTideInfo->getLowTideTime1()) == strtotime($currentTime) || strtotime($mapTideInfo->getLowTideTime2()) == strtotime($currentTime)){
+                    //조수간만차에 따라 최대 수심 감소
+                    $mapInfo->setMaxDepth($mapInfo->getMinDepth());
+                    //채비 수심 정하기
+                    if($mapInfo->getMaxDepth() >= $fishingItemDepth + 10){
+                        $maxDepth = $fishingItemDepth+10;
+                    }else{
+                        $maxDepth = $mapInfo->getMaxDepth();
                     }
-                }else if(strtotime($mapTideInfo->getHighTideTime2()) == strtotime($currentTime)){
-                    for ($i=0; $i<count($fishList); $i++){
-                        if($mapInfo->getMaxDepth() > $fishList[$i]['minDepth']){
-                            array_push($fishCodeArray, $fishList[$i]['fishCode']);
-                            array_push($percentArray, $fishList[$i]['fishProbability']+$mapTideInfo->getAppearProbability());
-                        }
+
+                    if($mapInfo->getMinDepth() >= $fishingItemDepth - 10){
+                        $minDepth = $fishingItemDepth-10;
+                    }else{
+                        $minDepth = $mapInfo->getMinDepth();
                     }
-                }else if(strtotime($mapTideInfo->getLowTideTime2()) == strtotime($currentTime)){
+
                     for ($i=0; $i<count($fishList); $i++){
-                        if($mapInfo->getMaxDepth() > $fishList[$i]['minDepth']){
-                            array_push($fishCodeArray, $fishList[$i]['fishCode']);
-                            array_push($percentArray, abs($fishList[$i]['fishProbability']-$mapTideInfo->getAppearProbability()));
+                        if($maxDepth >= $fishList[$i]['minDepth']){
+                            if($minDepth <= $fishList[$i]['minDepth']){
+                                $fishCodeArray[] = $fishList[$i]['fishCode'];
+                                $percentArray[] = abs($fishList[$i]['fishProbability']-$mapTideInfo->getAppearProbability())+$itemBait->getFishProbability();
+                            }
                         }
                     }
                 }else if(strtotime($mapTideInfo->getLowTideTime1()) < strtotime($currentTime)
@@ -267,66 +344,268 @@ class FishingService extends BaseService
                     $currentTimeDif3= strtotime($currentTime) - strtotime($mapTideInfo->getLowTideTime1());
                     $current3 = floor($currentTimeDif3/(60*60));
                     $addDepth = floor($depth/$timeDif3) * $current3;
+                    //조수간만차에 따라 최소 수심 증가
                     $mapInfo->setMinDepth($mapInfo->getMinDepth()+$addDepth);
 
+                    //채비 수심 정하기
+                    if($mapInfo->getMaxDepth() >= $fishingItemDepth + 10){
+                        $maxDepth = $fishingItemDepth+10;
+                    }else{
+                        $maxDepth = $mapInfo->getMaxDepth();
+                    }
+
+                    if($mapInfo->getMinDepth() >= $fishingItemDepth - 10){
+                        $minDepth = $fishingItemDepth-10;
+                    }else{
+                        $minDepth = $mapInfo->getMinDepth();
+                    }
+
                     for ($i=0; $i<count($fishList); $i++){
-                        if($mapInfo->getMinDepth() < $fishList[$i]['minDepth']){
-                            array_push($fishCodeArray, $fishList[$i]['fishCode']);
-                            array_push($percentArray, $fishList[$i]['fishProbability']);
+                        if($maxDepth >= $fishList[$i]['minDepth']){
+                            if($minDepth <= $fishList[$i]['minDepth']){
+                                $fishCodeArray[] = $fishList[$i]['fishCode'];
+                                $percentArray[] = $fishList[$i]['fishProbability']+$itemBait->getFishProbability();
+                            }
                         }
                     }
-                }else if(strtotime($mapTideInfo->getLowTideTime2()) < strtotime($currentTime)){
+                }else {//if(strtotime($mapTideInfo->getLowTideTime2()) < strtotime($currentTime)){
                     $tmpTime = date($mapTideInfo->getHighTideTime1(), strtotime("+1 day"));
                     $timeDif4 = strtotime($tmpTime) - strtotime($mapTideInfo->getLowTideTime2());
                     $currentTimeDif4= strtotime($currentTime) - strtotime($mapTideInfo->getLowTideTime2());
                     $current4 = floor($currentTimeDif4/(60*60));
                     $addDepth = floor($depth/$timeDif4) * $current4;
+                    //조수간만차에 따라 최소 수심 증가
                     $mapInfo->setMinDepth($mapInfo->getMinDepth()+$addDepth);
 
+                    //채비 수심 정하기
+                    if($mapInfo->getMaxDepth() >= $fishingItemDepth + 10){
+                        $maxDepth = $fishingItemDepth+10;
+                    }else{
+                        $maxDepth = $mapInfo->getMaxDepth();
+                    }
+
+                    if($mapInfo->getMinDepth() >= $fishingItemDepth - 10){
+                        $minDepth = $fishingItemDepth-10;
+                    }else{
+                        $minDepth = $mapInfo->getMinDepth();
+                    }
+
                     for ($i=0; $i<count($fishList); $i++){
-                        if($mapInfo->getMinDepth() < $fishList[$i]['minDepth']){
-                            array_push($fishCodeArray, $fishList[$i]['fishCode']);
-                            array_push($percentArray, $fishList[$i]['fishProbability']);
+                        if($maxDepth >= $fishList[$i]['minDepth']){
+                            if($minDepth <= $fishList[$i]['minDepth']){
+                                $fishCodeArray[] = $fishList[$i]['fishCode'];
+                                $percentArray[] = $fishList[$i]['fishProbability']+$itemBait->getFishProbability();
+                            }
                         }
                     }
                 }
             }
 
-            //등급별 물고기
-            $fishInfo = new FishInfoData();
-            $fishInfo->setFishCode($this->Percent_draw($fishCodeArray, $percentArray));
-            $fishInfo = $this->commonRepository->getFishInfo($fishInfo);
-
-            $sizeArray = array();
-            $percentArray = array();
-
-            for ($i=$fishInfo->getMinSize(); $i<=$fishInfo->getMaxSize(); $i++){
-                array_push($sizeArray, $i);
-                if($i == $fishInfo->getMinSize()){
-                    array_push($percentArray, $mapInfo->getFishSizeProbability());
-                }else{
-                    $temp = (100-$mapInfo->getFishSizeProbability())/2;
-                    array_push($percentArray, $temp);
-                }
+            //제압과 훅킹 성공여부
+            $successArray = array(0,1); //0:성공, 1:실패
+            if($itemRod->getItemType() == 2){
+                $itemRod->setHookingProbability($itemRod->getHookingProbability()*3);
             }
+            $suppress = $itemRod->getSuppressProbability()+$itemLine->getSuppressProbability()+$itemNeedle->getSuppressProbability();
+            $hooking = $itemRod->getHookingProbability()+$itemLine->getHookingProbability()+$itemNeedle->getHookingProbability();
+            $probabilityArray = array(20+$suppress+$hooking, abs(100-(20+$suppress+$hooking)));
+            $successYn = $this->Percent_draw($successArray, $probabilityArray);
 
-            //등급별 물고기 조회
-            $fishGradeInfo = new FishGradeData();
-            $fishGradeInfo->setFishCode($fishInfo->getFishCode());
-            $fishGradeInfo->setMinValue($this->Percent_draw($sizeArray, $percentArray)*$fishInfo->getFishProbability());
-            $fishGradeInfo = $this->commonRepository->getFishGradeData($fishGradeInfo);
+            if($successYn == 0){
+                //인벤토리 카운트 비교
+                $fishInventoryCnt = $this->fishingRepository->getUserFishInventoryListCnt($search);
+                $inventoryCnt = $this->userRepository->getUserInventoryListCnt($search);
+                
+                //캐릭터 인벤토리 최대 카운트와 비교
+                if($userInfo->getUseInventoryCount() > ($inventoryCnt+$fishInventoryCnt)){
+                    //채비 내구도 감소
+                    $inventoryRod->setItemDurability($inventoryRod->getItemDurability()-$mapInfo->getPerDurability());
+                    $this->userRepository->createUserInventoryInfo($inventoryRod);
 
-            $fishInventoryCnt = $this->fishingRepository->getUserFishInventoryListCnt($search);
-            $inventoryCnt = $this->userRepository->getUserInventoryListCnt($search);
+                    $inventoryLine->setItemDurability($inventoryLine->getItemDurability()-$mapInfo->getPerDurability());
+                    $this->userRepository->createUserInventoryInfo($inventoryLine);
 
-            //캐릭터 인벤토리 최대 카운트와 비교
-            if($userInfo->getUseInventoryCount() > ($inventoryCnt+$fishInventoryCnt)){
-                $userFishInventoryInfo = new UserFishInventoryInfo();
-                $userFishInventoryInfo->setUserCode($data->decoded->data->userCode);
-                $userFishInventoryInfo->setMapCode($data->mapCode);
-                $userFishInventoryInfo->setFishGradeCode($fishGradeInfo->getFishGradeCode());
-                $this->fishingRepository->createUserFishInventory($userFishInventoryInfo);
+                    $inventoryNeedle->setItemCount($inventoryNeedle->getItemCount()-1);
+                    $this->userRepository->createUserInventoryInfo($inventoryNeedle);
 
+                    $inventoryBait->setItemCount($inventoryBait->getItemCount()-1);
+                    $this->userRepository->createUserInventoryInfo($inventoryBait);
+
+                    $inventoryReel->setItemDurability($inventoryReel->getItemDurability()-$mapInfo->getPerDurability());
+                    $this->userRepository->createUserInventoryInfo($inventoryReel);
+
+                    if(!empty($inventoryItem1->getInventoryCode())){
+                        $inventoryItem1->setItemCount($inventoryItem1->getItemCount()-1);
+                        $this->userRepository->createUserInventoryInfo($inventoryItem1);
+                    }
+                    if(!empty($inventoryItem2->getInventoryCode())){
+                        $inventoryItem2->setItemCount($inventoryItem1->getItemCount()-1);
+                        $this->userRepository->createUserInventoryInfo($inventoryItem2);
+                    }
+                    if(!empty($inventoryItem3->getInventoryCode())){
+                        $inventoryItem3->setItemCount($inventoryItem1->getItemCount()-1);
+                        $this->userRepository->createUserInventoryInfo($inventoryItem3);
+                    }
+                    if(!empty($inventoryItem4->getInventoryCode())){
+                        $inventoryItem4->setItemCount($inventoryItem1->getItemCount()-1);
+                        $this->userRepository->createUserInventoryInfo($inventoryItem4);
+                    }
+                    //부품 or 물고기
+                    $code = $this->Percent_draw($fishCodeArray, $percentArray);
+                    $message = null;
+                    //물고기일 경우
+                    if($code != 0){
+                        //등급별 물고기 뽑기
+                        $fishInfo = new FishInfoData();
+                        $fishInfo->setFishCode($code);
+                        $fishInfo = $this->commonRepository->getFishInfo($fishInfo);
+
+                        $sizeArray = array();
+                        $percentArray = array();
+
+                        for ($i=$fishInfo->getMinSize(); $i<=$fishInfo->getMaxSize(); $i++){
+                            $sizeArray[] = $i;
+                            if($i == $fishInfo->getMinSize()){
+                                $percentArray[] = $mapInfo->getFishSizeProbability();
+                            }else{
+                                $temp = (100-$mapInfo->getFishSizeProbability())/2;
+                                $percentArray[] = $temp;
+                            }
+                        }
+
+                        //등급별 물고기 조회
+                        $fishGradeInfo = new FishGradeData();
+                        $fishGradeInfo->setFishCode($fishInfo->getFishCode());
+                        $fishGradeInfo->setMinValue($this->Percent_draw($sizeArray, $percentArray)*$fishInfo->getFishProbability());
+                        $fishGradeInfo = $this->commonRepository->getFishGradeData($fishGradeInfo);
+
+                        $userFishInventoryInfo = new UserFishInventoryInfo();
+                        $userFishInventoryInfo->setUserCode($data->decoded->data->userCode);
+                        $userFishInventoryInfo->setMapCode($data->mapCode);
+                        $userFishInventoryInfo->setFishGradeCode($fishGradeInfo->getFishGradeCode());
+                        $this->fishingRepository->createUserFishInventory($userFishInventoryInfo);
+
+                        //캐릭터 경험치 제공
+                        $userInfo->setUserExperience($userInfo->getUserExperience()+$fishGradeInfo->getAddExperience());
+
+                        $myLevelInfo = new UserLevelInfoData();
+                        $myLevelInfo->setLevelCode($userInfo->getLevelCode());
+                        $levelInfo = $this->userRepository->getUserLevelInfo($myLevelInfo);
+                        //레벨 경험치 비교후 레벨업
+                        if ($userInfo->getUserExperience() >= $levelInfo->getLevelExperience()){
+                            $userInfo->setUserExperience($userInfo->getUserExperience()-$levelInfo->getLevelExperience());
+                            $userInfo->setLevelCode($levelInfo->getLevelCode()+1);
+
+                            $myLevelInfo->setLevelCode($userInfo->getLevelCode());
+                            $levelInfo = $this->userRepository->getUserLevelInfo($myLevelInfo);
+
+                            $userInfo->setUseInventoryCount($levelInfo->getInventoryCount());
+                            $userInfo->setFatigue($levelInfo->getMaxFatigue());
+
+                            //지역 퀘스트 상세 조회
+                            $myQuestInfo = new QuestInfoData();
+                            $myQuestInfo->setQuestType(1);
+                            $myQuestInfo->setQuestGoal($userInfo->getLevelCode());
+                            $questInfo = $this->questRepository->getQuestInfoGoal($myQuestInfo);
+                            //캐릭터 퀘스트 여부
+                            $userQuestInfo = new UserQuestInfo();
+                            $userQuestInfo->setUserCode($userInfo->getUserCode());
+                            $userQuestInfo->setQuestCode($questInfo->getQuestCode());
+                            $userQuestCnt = $this->userRepository->getUserQuestInfoCnt($userQuestInfo);
+
+                            if($userQuestCnt == 0){
+                                //선물함(우편함) 등록
+                                $boxInfo = new UserGitfBoxInfo();
+                                $boxInfo->setUserCode($userInfo->getUserCode());
+                                $boxInfo->setQuestType(1);
+                                $boxInfo->setQuestGoal($userInfo->getLevelCode());
+                                $this->userRepository->createUserGiftBox($boxInfo);
+
+                                //캐릭터 퀘스트 등록
+                                $this->userRepository->createUserQuestInfo($userQuestInfo);
+                            }
+                            $message = "레벨 ".$userInfo->getLevelCode()."로 레벨업했습니다!";
+                        }
+                        $itemInfo = $fishGradeInfo;
+                    }else{ //부품일 경우
+                        $itemArray = array();
+                        $percentArray = array();
+
+                        for ($i=0; $i<count($itemList); $i++){
+                            $itemArray[] = $itemList[$i]['mapItemCode'];
+                            $percentArray[] = $itemList[$i]['itemProbability'];
+                        }
+
+                        $myMapItem = new MapItemData();
+                        $myMapItem->setMapItemCode($this->Percent_draw($itemArray, $percentArray));
+                        $mapItem = $this->mapRepository->getMapItemInfo($myMapItem);
+                        //물고기 인벤토리가 아닌 캐릭터 인벤토리에 저장
+                        $myInventory = new UserInventoryInfo();
+                        $myInventory->setUserCode($data->decoded->data->userCode);
+                        if($mapItem->getItemType()==1 || $mapItem->getItemType()==2 || $mapItem->getItemType()==5){
+                            //업그레이드 초기값 코드 조회
+                            $myUpgrade = new FishingItemUpgradeData();
+                            $myUpgrade->setItemGradeCode($mapItem->getItemCode());
+                            $myUpgrade->setItemType($mapItem->getItemType());
+                            $myUpgrade->setUpgradeLevel(1);
+                            $upgradeCode = $this->upgradeRepository->getFishingItemUpgradeCode($myUpgrade);
+
+                            $myInventory->setItemCode($mapItem->getItemCode());
+                            $myInventory->setItemType($mapItem->getItemType());
+                            $myInventory->setUpgradeCode($upgradeCode);
+                            $myInventory->setUpgradeLevel(1);
+                            $myInventory->setItemCount(1);
+                            $myInventory->setItemDurability(5);
+                            //인벤토리 등록
+                            $userInventoryCode = $this->userRepository->createUserInventoryInfo($myInventory);
+                        }else{
+                            //인벤토리 여부 확인, 인벤토리 코드 return
+                            $search->setItemCode($mapItem->getItemCode());
+                            $search->setItemType($mapItem->getItemType());
+                            $inventoryCode = $this->userRepository->getUserInventoryCode($search);
+
+                            if ($inventoryCode != 0){
+                                //인벤토리에 같은 아이템 조회
+                                $myInventory->setInventoryCode($inventoryCode);
+                                $inventoryInfo = $this->userRepository->getUserInventory($myInventory);
+                                //인벤토리 등록 (카운트 증가)
+                                $inventoryInfo->setItemCount($inventoryInfo->getItemCount()+3);
+                                $userInventoryCode = $this->userRepository->createUserInventoryInfo($inventoryInfo);
+                            }else{
+                                $myInventory->setItemCode($mapItem->getItemCode());
+                                $myInventory->setItemType($mapItem->getItemType());
+                                $myInventory->setUpgradeCode(0);
+                                $myInventory->setUpgradeLevel(0);
+                                $myInventory->setItemCount(3);
+                                $myInventory->setItemDurability(1);
+                                //인벤토리 등록
+                                $userInventoryCode = $this->userRepository->createUserInventoryInfo($myInventory);
+                            }
+                        }
+                        $myInventory->setInventoryCode($userInventoryCode);
+                        $itemInfo = $this->userRepository->getUserInventory($myInventory);
+                    }
+
+                    $this->userRepository->modifyUserLevel($userInfo);
+                    if (self::isRedisEnabled() === true) {
+                        $user = $this->userRepository->getUserInfo($userInfo);
+                        $this->saveInCache($userInfo->getUserCode(), $user, self::USER_REDIS_KEY);
+                    }
+                    $this->logger->info("fishing operate service");
+                    return [
+                        'itemInfo' => $itemInfo,
+                        'message' => $message,
+                    ];
+                }else{
+                    $this->logger->info("full fish inventory service");
+                    return [
+                        'itemInfo' => null,
+                        'message' => '인벤토리가 가득찼습니다! 입항해주세요~',
+                    ];
+                }
+            }else{
+
+                //채비 내구도 감소
                 $inventoryRod->setItemDurability($inventoryRod->getItemDurability()-$mapInfo->getPerDurability());
                 $this->userRepository->createUserInventoryInfo($inventoryRod);
 
@@ -359,65 +638,9 @@ class FishingService extends BaseService
                     $this->userRepository->createUserInventoryInfo($inventoryItem4);
                 }
 
-                $userInfo->setUserExperience($userInfo->getUserExperience()+$fishGradeInfo->getAddExperience());
-
-                $myLevelInfo = new UserLevelInfoData();
-                $myLevelInfo->setLevelCode($userInfo->getLevelCode());
-                $levelInfo = $this->userRepository->getUserLevelInfo($myLevelInfo);
-
-                $message = null;
-
-                if ($userInfo->getUserExperience() >= $levelInfo->getLevelExperience()){
-                    $userInfo->setUserExperience($userInfo->getUserExperience()-$levelInfo->getLevelExperience());
-                    $userInfo->setLevelCode($levelInfo->getLevelCode()+1);
-
-                    $myLevelInfo->setLevelCode($userInfo->getLevelCode());
-                    $levelInfo = $this->userRepository->getUserLevelInfo($myLevelInfo);
-
-                    $userInfo->setUseInventoryCount($levelInfo->getInventoryCount());
-                    $userInfo->setFatigue($levelInfo->getMaxFatigue());
-
-                    //지역 퀘스트 상세 조회
-                    $myQuestInfo = new QuestInfoData();
-                    $myQuestInfo->setQuestType(1);
-                    $myQuestInfo->setQuestGoal($userInfo->getLevelCode());
-                    $questInfo = $this->questRepository->getQuestInfoGoal($myQuestInfo);
-                    //캐릭터 퀘스트 여부
-                    $userQuestInfo = new UserQuestInfo();
-                    $userQuestInfo->setUserCode($userInfo->getUserCode());
-                    $userQuestInfo->setQuestCode($questInfo->getQuestCode());
-                    $userQuestCnt = $this->userRepository->getUserQuestInfoCnt($userQuestInfo);
-
-                    if($userQuestCnt == 0){
-                        //선물함(우편함) 등록
-                        $boxInfo = new UserGitfBoxInfo();
-                        $boxInfo->setUserCode($userInfo->getUserCode());
-                        $boxInfo->setQuestType(1);
-                        $boxInfo->setQuestGoal($userInfo->getLevelCode());
-                        $this->userRepository->createUserGiftBox($boxInfo);
-
-                        //캐릭터 퀘스트 등록
-                        $this->userRepository->createUserQuestInfo($userQuestInfo);
-                    }
-
-                    $message = "레벨 ".$userInfo->getLevelCode()."로 레벨업했습니다!";
-                }
-
-                $this->userRepository->modifyUserLevel($userInfo);
-                if (self::isRedisEnabled() === true) {
-                    $user = $this->userRepository->getUserInfo($userInfo);
-                    $this->saveInCache($userInfo->getUserCode(), $user, self::USER_REDIS_KEY);
-                }
-                $this->logger->info("fishing operate service");
-                return [
-                    'fishInfo' => $fishGradeInfo,
-                    'message' => $message,
-                ];
-            }else{
-                $this->logger->info("full fish inventory service");
                 return [
                     'fishInfo' => null,
-                    'message' => '인벤토리가 가득찼습니다! 입항해주세요~',
+                    'message' => '물고기를 놓쳤습니다.',
                 ];
             }
         }else{

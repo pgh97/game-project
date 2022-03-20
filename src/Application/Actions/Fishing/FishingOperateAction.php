@@ -14,10 +14,11 @@ class FishingOperateAction extends FishingAction
     {
         $input = (array) $request->getParsedBody();
         $service = new FishingService($this->logger, $this->fishingRepository, $this->userRepository
-            ,$this->mapRepository ,$this->questRepository ,$this->commonRepository, $this->redisService);
-        $result = $service->fishingOperate($input);
-        $payload = array();
-        $payload['fishInfo'] = $result['fishInfo'];
-        return $this->respondWithData($payload,200,null,$result['message']);
+            ,$this->mapRepository ,$this->questRepository ,$this->upgradeRepository ,$this->commonRepository, $this->redisService);
+
+        $payload = $service->fishingOperate($input);
+        $message = $payload['message'];
+        unset($payload['message']);
+        return $this->respondWithData($payload,200,null,$message);
     }
 }

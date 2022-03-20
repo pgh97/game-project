@@ -3,7 +3,9 @@
 namespace App\Domain\Fishing\Repository;
 
 use App\Domain\Common\Entity\SearchInfo;
+use App\Domain\Fishing\Entity\FishingBaitGradeData;
 use App\Domain\Fishing\Entity\FishingLineGradeData;
+use App\Domain\Fishing\Entity\FishingNeedleGradeData;
 use App\Domain\Fishing\Entity\FishingReelGradeData;
 use App\Domain\Fishing\Entity\FishingRodGradeData;
 use App\Domain\User\Entity\UserFishInventoryInfo;
@@ -58,4 +60,16 @@ interface FishingRepository
      * @return FishingReelGradeData
      */
     public function getFishingReelGradeData(UserInventoryInfo $inventoryInfo): FishingReelGradeData;
+
+    /**
+     * @param UserInventoryInfo $inventoryInfo
+     * @return FishingNeedleGradeData
+     */
+    public function getFishingNeedleGradeData(UserInventoryInfo $inventoryInfo): FishingNeedleGradeData;
+
+    /**
+     * @param UserInventoryInfo $inventoryInfo
+     * @return FishingBaitGradeData
+     */
+    public function getFishingBaitGradeData(UserInventoryInfo $inventoryInfo): FishingBaitGradeData;
 }
