@@ -5,6 +5,7 @@ namespace App\Domain\Auction\Service;
 use App\Domain\Auction\Entity\AuctionInfoData;
 use App\Domain\Auction\Entity\AuctionRanking;
 use App\Domain\Auction\Repository\AuctionRepository;
+use App\Domain\Common\Entity\Level\UserLevelInfoData;
 use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
@@ -89,6 +90,10 @@ class AuctionService extends BaseService
             $myUserInfo->setUserCode($data->decoded->data->userCode);
             $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         }
+        //레벨에 따른 경매 이익
+        $myLevelInfo = new UserLevelInfoData();
+        $myLevelInfo->setLevelCode($userInfo->getLevelCode());
+        $levelInfo = $this->userRepository->getUserLevelInfo($myLevelInfo);
 
         //경매의 물고기 등급 코드에 따라 인벤토리 총 카운트조회
         $search = new SearchInfo();
@@ -103,6 +108,8 @@ class AuctionService extends BaseService
         if($count>=$sellCount){
             //물고기 판매 금액 획득
             $addPrice = $auctionInfo->getAuctionPrice() * $sellCount;
+            //레벨에 따른 경매 이익
+            $profitPrice = floor(($auctionInfo->getAuctionPrice() * $sellCount) * ($levelInfo->getAuctionProfit()/100));
             //인벤토리 물고기 삭제
             $search->setLimit($sellCount);
             $this->userRepository->deleteUserInventoryFish($search);
@@ -114,13 +121,13 @@ class AuctionService extends BaseService
 
             //캐릭터 정보 수정
             if($auctionInfo->getMoneyCode() == 1){
-                $userInfo->setMoneyGold($userInfo->getMoneyGold()+$addPrice);
+                $userInfo->setMoneyGold($userInfo->getMoneyGold()+$addPrice+$profitPrice);
                 $moneyNm = "골드";
             }elseif ($auctionInfo->getMoneyCode() == 2){
-                $userInfo->setMoneyPearl($userInfo->getMoneyPearl()+$addPrice);
+                $userInfo->setMoneyPearl($userInfo->getMoneyPearl()+$addPrice+$profitPrice);
                 $moneyNm = "진주";
             }else{
-                $userInfo->setFatigue($userInfo->getFatigue()+$addPrice);
+                $userInfo->setFatigue($userInfo->getFatigue()+$addPrice+$profitPrice);
                 $moneyNm = "피로도";
             }
             $this->userRepository->modifyUserInfo($userInfo);
@@ -132,7 +139,7 @@ class AuctionService extends BaseService
             $myRank->setWeekDate($currentDay);
             $myRank->setUserCode($auctionInfo->getUserCode());
             $myRank->setMoneyCode($auctionInfo->getMoneyCode());
-            $myRank->setPriceSum($addPrice);
+            $myRank->setPriceSum($addPrice+$profitPrice);
             $this->auctionRepository->createAuctionRank($myRank);
 
             //$dayName = array("일","월","화","수","목","금","토");
@@ -149,14 +156,15 @@ class AuctionService extends BaseService
                 $userInfo = $this->userRepository->getUserInfo($userInfo);
                 $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
                 if($auctionInfo->getMoneyCode() == 1){
-                    $this->saveInAddRank($data->decoded->data->userCode, $addPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_GOLD, $currentDay);
+                    $this->saveInAddRank($data->decoded->data->userCode, $addPrice+$profitPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_GOLD, $currentDay);
                 }elseif($auctionInfo->getMoneyCode() == 2){
-                    $this->saveInAddRank($data->decoded->data->userCode, $addPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_PEARL, $currentDay);
+                    $this->saveInAddRank($data->decoded->data->userCode, $addPrice+$profitPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_PEARL, $currentDay);
                 }
             }
             return [
+                'auctionProfitPrice' => $profitPrice,
                 'userInfo' => $userInfo,
-                'message' => "물고기를 ".$sellCount."개 판매하여 ".$addPrice." ".$moneyNm."를 얻었습니다.",
+                'message' => "물고기를 ".$sellCount."개 판매하여 ".($addPrice+$profitPrice)." ".$moneyNm."를 얻었습니다.",
             ];
         }else{
             return [
