@@ -12,6 +12,7 @@ use App\Domain\User\Entity\UserGitfBoxInfo;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Repository\UserRepository;
+use App\Exception\ErrorCode;
 use Psr\Log\LoggerInterface;
 
 class ShopService extends BaseService
@@ -38,7 +39,7 @@ class ShopService extends BaseService
         $this->redisService = $redisService;
     }
 
-    public function getShopInfo(array $input):ShopInfoData
+    public function getShopInfo(array $input):array
     {
         $data = json_decode((string) json_encode($input), false);
         $myShopInfo = new ShopInfoData();
@@ -46,8 +47,12 @@ class ShopService extends BaseService
 
         //상점 상세 조회
         $shopInfo = $this->shopRepository->getShopInfo($myShopInfo);
+        $code = new ErrorCode();
         $this->logger->info("get shop info service");
-        return $shopInfo;
+        return [
+            'shopInfo' => $shopInfo,
+            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
     public function getShopInfoList(array $input):array
@@ -60,10 +65,12 @@ class ShopService extends BaseService
         //상점 목록 조회
         $shopArray = $this->shopRepository->getShopInfoList($search);
         $shopArrayCnt = $this->shopRepository->getShopInfoListCnt($search);
+        $code = new ErrorCode();
         $this->logger->info("get list shop info service");
         return [
             'shopList' => $shopArray,
             'totalCount' => $shopArrayCnt,
+            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
@@ -88,6 +95,7 @@ class ShopService extends BaseService
         $inventoryInfo = $this->userRepository->getUserInventory($myInventory);
 
         //팔려고 하는 갯수가 있는지 비교
+        $code = new ErrorCode();
         if($inventoryInfo->getItemCount() >= $sellCount){
             //인벤토리 아이템에 대한 상점 아이템 조회
             $myShopInfo = new ShopInfoData();
@@ -117,11 +125,11 @@ class ShopService extends BaseService
             return [
                 'moneyCode' => $shopInfo->getMoneyCode(),
                 'moneyPrice' => $sellCount * $shopInfo->getItemPrice(),
-                'message' => "장비를 판매했습니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::SELL_SUCCESS),
             ];
         }else{
             return [
-                'message' => "가지고 있는 장비의 갯수가 부족합니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::SELL_FAIL),
             ];
         }
     }
@@ -137,6 +145,7 @@ class ShopService extends BaseService
             $myUserInfo->setUserCode($data->decoded->data->userCode);
             $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         }
+        $code = new ErrorCode();
         //구입할 갯수
         $buyCount = $data->shopCount;
         if($buyCount != 0){
@@ -176,18 +185,18 @@ class ShopService extends BaseService
                 return [
                     'moneyCode' => $shopInfo->getMoneyCode(),
                     'moneyPrice' => $buyCount * $shopInfo->getItemPrice(),
-                    'message' => "구매를 완료했습니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::BUY_SUCCESS),
                 ];
             }else{
                 return [
                     'moneyCode' => $shopInfo->getMoneyCode(),
                     'moneyPrice' => $buyCount * $shopInfo->getItemPrice(),
-                    'message' => "수리를 하기에 재화가 부족합니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::NO_MONEY),
                 ];
             }
         }else{
             return [
-                'message' => "구매할 상품 갯수를 정해주세요.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::NO_PARAM),
             ];
         }
     }

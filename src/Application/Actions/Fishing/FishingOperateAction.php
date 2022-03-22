@@ -17,8 +17,9 @@ class FishingOperateAction extends FishingAction
             ,$this->mapRepository ,$this->questRepository ,$this->upgradeRepository ,$this->commonRepository, $this->redisService);
 
         $payload = $service->fishingOperate($input);
-        $message = $payload['message'];
-        unset($payload['message']);
-        return $this->respondWithData($payload,200,null,$message);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
+        $this->logger->info("create fish info Action");
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

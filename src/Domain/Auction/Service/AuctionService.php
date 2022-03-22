@@ -12,6 +12,7 @@ use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Repository\UserRepository;
+use App\Exception\ErrorCode;
 use Psr\Log\LoggerInterface;
 
 class AuctionService extends BaseService
@@ -39,7 +40,7 @@ class AuctionService extends BaseService
         $this->redisService = $redisService;
     }
 
-    public function getAuctionInfo(array $input):AuctionInfoData
+    public function getAuctionInfo(array $input):array
     {
         $data = json_decode((string) json_encode($input), false);
         $myAuctionInfo = new AuctionInfoData();
@@ -48,8 +49,12 @@ class AuctionService extends BaseService
 
         //경매 아이템 조회
         $auctionInfo = $this->auctionRepository->getAuctionInfo($myAuctionInfo);
+        $code = new ErrorCode();
         $this->logger->info("get auction info Action");
-        return $auctionInfo;
+        return [
+            'auctionInfo' => $auctionInfo,
+            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
     public function getAuctionInfoList(array $input):array
@@ -65,10 +70,12 @@ class AuctionService extends BaseService
         //경매 아이템 목록 조회
         $auctionArray = $this->auctionRepository->getAuctionInfoList($search);
         $auctionArrayCnt = $this->auctionRepository->getAuctionInfoListCnt($search);
+        $code = new ErrorCode();
         $this->logger->info("get list auction info Action");
         return [
             'auctionList' => $auctionArray,
             'totalCount' => $auctionArrayCnt,
+            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
@@ -81,7 +88,7 @@ class AuctionService extends BaseService
         $myAuction->setUserCode($data->decoded->data->userCode);
         $myAuction->setAuctionCode($data->auctionCode);
         $auctionInfo = $this->auctionRepository->getAuctionInfo($myAuction);
-
+        $code = new ErrorCode();
         //회원정보 조회
         if(self::isRedisEnabled() === true){
             $userInfo = $this->getOneUserCache($data->decoded->data->userCode, self::USER_REDIS_KEY);
@@ -164,11 +171,11 @@ class AuctionService extends BaseService
             return [
                 'auctionProfitPrice' => $profitPrice,
                 'userInfo' => $userInfo,
-                'message' => "물고기를 ".$sellCount."개 판매하여 ".($addPrice+$profitPrice)." ".$moneyNm."를 얻었습니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::SELL_SUCCESS),
             ];
         }else{
             return [
-                'message' => "판매할 수 있는 물고기 갯수가 부족합니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::SELL_FAIL),
             ];
         }
     }
@@ -184,6 +191,7 @@ class AuctionService extends BaseService
             $myUserInfo->setUserCode($data->decoded->data->userCode);
             $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         }
+        $code = new ErrorCode();
 
         //7일전까지의 랭킹 목록 조회
         /*$myRankInfo = new AuctionRanking();
@@ -236,11 +244,11 @@ class AuctionService extends BaseService
         if(array_filter($rankList)){
             return [
                 'auctionRankList' => $rankList,
-                'message' => null,
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
             ];
         }else{
             return [
-                'message' => "현재 측정된 랭킹이 없습니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::NOT_CONTENTS),
             ];
         }
     }

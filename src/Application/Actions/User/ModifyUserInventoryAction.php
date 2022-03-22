@@ -14,7 +14,7 @@ class ModifyUserInventoryAction extends UserAction
     {
         $input = (array) $request->getParsedBody();
         $service = new UserService($this->logger, $this->userRepository, $this->upgradeRepository
-            , $this->fishingRepository,$this->commonRepository, $this->redisService);
+            , $this->fishingRepository,$this->commonRepository, $this->scribeService, $this->redisService);
         $payload = array();
         $this->logger->info("update user inventory Action");
         return $this->respondWithData($payload);

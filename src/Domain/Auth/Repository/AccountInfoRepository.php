@@ -49,4 +49,10 @@ interface AccountInfoRepository
      * @return int
      */
     public function modifyAccountInfo(AccountInfo $accountInfo): int;
+
+    /**
+     * @param AccountInfo $accountInfo
+     * @return int
+     */
+    public function getAccountIdCount(AccountInfo $accountInfo): int;
 }

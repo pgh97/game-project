@@ -17,9 +17,9 @@ class MapEnterPortAction extends MapAction
             ,$this->auctionRepository ,$this->fishingRepository ,$this->questRepository
             ,$this->commonRepository, $this->redisService);
         $payload = $service->mapEnterPort($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("success enter port action");
-        $message = $payload['message'];
-        unset($payload['message']);
-        return $this->respondWithData($payload, 200, null, $message);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

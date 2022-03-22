@@ -49,6 +49,10 @@ return function (ContainerBuilder $containerBuilder) {
                     'domain' => $_SERVER['APP_DOMAIN'],
                     'secret' => $_SERVER['SECRET_KEY'],
                 ],
+                'scribe' => [
+                    'host' => 'localhost',
+                    'port' => 1464,
+                ],
             ]);
         }
     ]);

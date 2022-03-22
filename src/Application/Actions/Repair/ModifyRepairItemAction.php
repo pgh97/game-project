@@ -16,9 +16,9 @@ class ModifyRepairItemAction extends RepairAction
         $service = new RepairService($this->logger, $this->repairRepository, $this->userRepository
             ,$this->fishingRepository ,$this->commonRepository, $this->redisService);
         $payload = $service->modifyRepairItem($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("update item repair action");
-        $message = $payload['message'];
-        unset($payload['message']);
-        return $this->respondWithData($payload, 200, null, $message);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

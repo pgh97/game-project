@@ -16,9 +16,9 @@ class ModifyUpgradeShipItemActon extends UpgradeAction
         $service = new UpgradeService($this->logger, $this->upgradeRepository, $this->userRepository, $this->fishingRepository
             ,$this->commonRepository, $this->redisService);
         $payload = $service->modifyUpgradeShipItem($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("upgrade ship item action");
-        $message = $payload['message'];
-        unset($payload['message']);
-        return $this->respondWithData($payload, 200, null, $message);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

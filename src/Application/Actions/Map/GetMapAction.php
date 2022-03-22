@@ -16,9 +16,10 @@ class GetMapAction extends MapAction
         $service = new MapService($this->logger, $this->mapRepository, $this->userRepository
             ,$this->auctionRepository ,$this->fishingRepository ,$this->questRepository
             ,$this->commonRepository ,$this->redisService);
-        $payload = array();
-        $payload['mapInfo'] = $service->getMapInfo($input);
+        $payload = $service->getMapInfo($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("map info action");
-        return $this->respondWithData($payload);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

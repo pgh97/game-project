@@ -16,7 +16,9 @@ class GetAuctionListAction extends AuctionAction
         $service = new AuctionService($this->logger, $this->auctionRepository
             ,$this->userRepository ,$this->commonRepository, $this->redisService);
         $payload = $service->getAuctionInfoList($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("get list auction info Action");
-        return $this->respondWithData($payload);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

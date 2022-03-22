@@ -27,6 +27,7 @@ use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserQuestInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
+use App\Exception\ErrorCode;
 use Psr\Log\LoggerInterface;
 
 class FishingService extends BaseService
@@ -65,7 +66,7 @@ class FishingService extends BaseService
         $this->redisService = $redisService;
     }
 
-    public function getFishInventory(array $input):UserFishInventoryInfo
+    public function getFishInventory(array $input):array
     {
         $data = json_decode((string) json_encode($input), false);
         $myFishInventory = new UserFishInventoryInfo();
@@ -74,8 +75,12 @@ class FishingService extends BaseService
 
         //잡은 물고기 상세 조회
         $fishInventory = $this->fishingRepository->getUserFishInventory($myFishInventory);
+        $errorCode = new ErrorCode();
         $this->logger->info("get fish inventory info service");
-        return $fishInventory;
+        return [
+            'fishInventoryInfo' => $fishInventory,
+            'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
     public function getFishInventoryList(array $input):array
@@ -90,10 +95,12 @@ class FishingService extends BaseService
         //잡은 물고기 목록 조회
         $fishInventoryArray = $this->fishingRepository->getUserFishInventoryList($search);
         $fishInventoryArrayCnt = $this->fishingRepository->getUserFishInventoryListCnt($search);
+        $errorCode = new ErrorCode();
         $this->logger->info("get list fish inventory info service");
         return [
             'fishInventoryList' => $fishInventoryArray,
             'totalCount' => $fishInventoryArrayCnt,
+            'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
@@ -123,6 +130,7 @@ class FishingService extends BaseService
             $myTideInfo->setSort(1);
             $mapTideInfo = $this->mapRepository->getMapTideInfo($myTideInfo);
        }
+        $errorCode = new ErrorCode();
         //채비 수심 +- 10까지
         $fishingItemDepth = $data->depth;
         //채비
@@ -592,15 +600,22 @@ class FishingService extends BaseService
                         $this->saveInCache($userInfo->getUserCode(), $user, self::USER_REDIS_KEY);
                     }
                     $this->logger->info("fishing operate service");
-                    return [
-                        'itemInfo' => $itemInfo,
-                        'message' => $message,
-                    ];
+                    if(!empty($message)){
+                        return [
+                            'itemInfo' => $itemInfo,
+                            'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::LEVEL_SUCCESS),
+                        ];
+                    }else{
+                        return [
+                            'itemInfo' => $itemInfo,
+                            'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::SUCCESS),
+                        ];
+                    }
                 }else{
                     $this->logger->info("full fish inventory service");
                     return [
                         'itemInfo' => null,
-                        'message' => '인벤토리가 가득찼습니다! 입항해주세요~',
+                        'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::FULL_DATA),
                     ];
                 }
             }else{
@@ -640,14 +655,14 @@ class FishingService extends BaseService
 
                 return [
                     'fishInfo' => null,
-                    'message' => '물고기를 놓쳤습니다.',
+                    'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::MISS_FISH),
                 ];
             }
         }else{
             $this->logger->info("check fishing item service");
             return [
                 'fishInfo' => null,
-                'message' => '채비의 내구도 혹은 갯수를 확인해주세요~',
+                'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::NOT_FULL_FISHING_ITEM),
             ];
         }
     }
@@ -660,13 +675,14 @@ class FishingService extends BaseService
         $userFishInventory->setFishInventoryCode($data->fishInventoryCode);
         //잡은 물고기 삭제
         $result = $this->fishingRepository->deleteUserFishInventory($userFishInventory);
+        $errorCode = new ErrorCode();
         if($result>0){
             return [
-                'message' => '잡은 물고기를 삭제했습니다.'
+                'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::SUCCESS),
             ];
         }else{
             return [
-                'message' => '잡은 물고기 삭제를 실패했습니다.'
+                'codeArray' =>  $errorCode->getErrorArrayItem(ErrorCode::FAIL_FUNCTION),
             ];
         }
     }

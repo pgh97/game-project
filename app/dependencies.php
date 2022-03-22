@@ -2,13 +2,15 @@
 declare(strict_types=1);
 
 use App\Application\Settings\SettingsInterface;
-use App\Domain\Common\Service\RedisService;
 use DI\ContainerBuilder;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Monolog\Processor\UidProcessor;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
+use Thrift\Protocol\TBinaryProtocol;
+use Thrift\Transport\TFramedTransport;
+use Thrift\Transport\TSocketPool;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -18,7 +20,8 @@ return function (ContainerBuilder $containerBuilder) {
             $loggerSettings = $settings->get('logger');
             $logger = new Logger($loggerSettings['name']);
 
-            $processor = new UidProcessor();
+            $processor = new UidProcessor(20);
+            $_SERVER['GUID'] = $processor->getUid();
             $logger->pushProcessor($processor);
 
             $handler = new StreamHandler($loggerSettings['path'], $loggerSettings['level']);
@@ -27,9 +30,7 @@ return function (ContainerBuilder $containerBuilder) {
         },
 
         PDO::class => function (ContainerInterface $c) {
-
             $settings = $c->get(SettingsInterface::class);
-
             $dbSettings = $settings->get('db');
 
             $host = $dbSettings['host'];
@@ -54,6 +55,24 @@ return function (ContainerBuilder $containerBuilder) {
             $client = new Predis\Client($redis['url']);
             $client->auth($redis['pass']);
             return $client;
-        }
+        },
+
+        \scribeClient::class => function (ContainerInterface $c){
+            $settings = $c->get(SettingsInterface::class);
+            $scribe = $settings->get('scribe');
+            $scribe_servers = array($scribe['host']);
+            $scribe_ports = array($scribe['port']);
+            $socket = new TSocketPool($scribe_servers, $scribe_ports);
+            $socket->setDebug(0);
+            $socket->setSendTimeout(1000);
+            $socket->setRecvTimeout(2500);
+            $socket->setNumRetries(1);
+            $socket->setRandomize(false);
+            $socket->setAlwaysTryLast(true);
+            $transport = new TFramedTransport($socket);
+            $protocol = new TBinaryProtocol($transport);
+            $transport->open();
+            return new scribeClient($protocol);
+        },
     ]);
 };

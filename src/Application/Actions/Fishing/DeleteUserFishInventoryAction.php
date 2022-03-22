@@ -16,8 +16,8 @@ class DeleteUserFishInventoryAction extends FishingAction
         $service = new FishingService($this->logger, $this->fishingRepository, $this->userRepository
             ,$this->mapRepository ,$this->questRepository ,$this->upgradeRepository ,$this->commonRepository, $this->redisService);
         $payload = $service->deleteFishInventory($input);
-        $message = $payload['message'];
-        unset($payload['message']);
-        return $this->respondWithData($payload,200,null,$message);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

@@ -16,7 +16,9 @@ class GetQuestListAction extends QuestAction
         $service = new QuestService($this->logger, $this->questRepository
             ,$this->commonRepository, $this->redisService);
         $payload = $service->getQuestInfoList($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("get list quest info Action");
-        return $this->respondWithData($payload);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

@@ -15,15 +15,11 @@ class DeleteUserAction extends UserAction
     {
         $input = (array) $request->getParsedBody();
         $service = new UserService($this->logger, $this->userRepository, $this->upgradeRepository
-            , $this->fishingRepository, $this->commonRepository, $this->redisService);
+            , $this->fishingRepository, $this->commonRepository, $this->scribeService, $this->redisService);
         $payload=$service->removeUserInfo($input);
-        if($payload==0){
-            $this->logger->info("fail delete user info Action");
-            $error = new ActionError("400",  ActionError::BAD_REQUEST, '캐릭터 삭제가 실패했습니다.');
-            return $this->respondWithData(null, 400, $error);
-        }else{
-            $this->logger->info("delete user info Action");
-            return $this->respondWithData($payload,200,null,"캐릭터가 삭제되었습니다.");
-        }
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
+        $this->logger->info("delete user info Action");
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

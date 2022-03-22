@@ -19,6 +19,7 @@
     "selective/basepath": "2.1.0",
     "monolog/monolog": "^2.3",
     "phpoffice/phpspreadsheet": "1.21.0",
+    "tranch/scribe-client": "v0.1.1",
     "ext-mysqli": "*",
     "ext-gd": "*",
     "ext-redis": "*",

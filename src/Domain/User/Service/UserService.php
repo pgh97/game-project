@@ -9,6 +9,7 @@ use App\Domain\Common\Entity\Weather\WeatherInfoData;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Common\Service\ScribeService;
 use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Upgrade\Entity\FishingItemUpgradeData;
 use App\Domain\Upgrade\Repository\UpgradeRepository;
@@ -20,6 +21,7 @@ use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
+use App\Exception\ErrorCode;
 use Psr\Log\LoggerInterface;
 use Firebase\JWT\JWT;
 
@@ -30,6 +32,7 @@ class UserService extends BaseService
     protected FishingRepository $fishingRepository;
     protected CommonRepository $commonRepository;
     protected LoggerInterface $logger;
+    protected ScribeService $scribeService;
     protected RedisService $redisService;
 
     private const USER_REDIS_KEY = 'user:%s';
@@ -40,6 +43,7 @@ class UserService extends BaseService
         , UpgradeRepository                     $upgradeRepository
         , FishingRepository                     $fishingRepository
         , CommonRepository                      $commonRepository
+        , ScribeService                         $scribeService
         , RedisService                          $redisService)
     {
         $this->logger = $logger;
@@ -47,10 +51,11 @@ class UserService extends BaseService
         $this->upgradeRepository = $upgradeRepository;
         $this->fishingRepository = $fishingRepository;
         $this->commonRepository = $commonRepository;
+        $this->scribeService = $scribeService;
         $this->redisService = $redisService;
     }
 
-    public function createUserInfo(array $input): int
+    public function createUserInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myUserInfo = new UserInfo();
@@ -72,6 +77,7 @@ class UserService extends BaseService
 
         //new 캐릭터 생성
         $userCode = $this->userRepository->createUserInfo($myUserInfo);
+        $code = new ErrorCode();
         if($userCode > 0){
             //기본 아이템 인벤토리 등록
             for ($i=0; $i<5; $i++){
@@ -119,12 +125,49 @@ class UserService extends BaseService
                 $user = $this->userRepository->getUserInfo($myUserInfo);
                 $this->saveInCache($userCode, $user, self::USER_REDIS_KEY);
             }
+            //scribe 로그 남기기
+            date_default_timezone_set('Asia/Seoul');
+            $currentDate = date("Ymd");
+            $currentTime = date("Y-m-d H:i:s");
+
+            $dataJson = json_encode([
+                "date" => $currentTime,
+                "dateTime" => $currentTime,
+                "channel_uid" => 0,
+                "game" => ScribeService::PROJECT_NAME,
+                "server_id" => 'KR',
+                "account_id" => $data->decoded->data->accountCode,
+                "account_level" => 0,
+                "character_id" => $userCode,
+                "character_type_id" => 0,
+                "character_level" => 1,
+                "app_id" => ScribeService::PROJECT_NAME,
+                "client_ip" => $_SERVER['REMOTE_ADDR'],
+                "server_ip" => $_SERVER['SERVER_ADDR'],
+                "channel" => "C2S",
+                "company" => "C2S",
+                "guid" => $_SERVER['GUID']
+            ]);
+
+            $msg[] = new \LogEntry(array(
+                'category' => 'uruk-game_character_creation_log_'.$currentDate,
+                'message' => $dataJson
+            ));
+            $this->scribeService->Log($msg);
             $this->logger->info("create user service");
+
+            return [
+                'userCode' => $userCode,
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+            ];
+        }else{
+            return [
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::FAIL_FUNCTION),
+            ];
         }
-        return $userCode;
     }
 
-    public function createUserFishingItem(array $input): int
+    public function createUserFishingItem(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myChoiceItem = new UserChoiceItemInfo();
@@ -157,10 +200,20 @@ class UserService extends BaseService
             $choiceCode = 0;
             $this->logger->info("count fail create user fishing-item Service");
         }
-        return $choiceCode;
+        $code = new ErrorCode();
+        if($choiceCode > 0){
+            return [
+                'choiceCode' => $choiceCode,
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS_CREATED),
+            ];
+        }else{
+            return [
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::BAD_REQUEST),
+            ];
+        }
     }
 
-    public function getUserInfo(array $input): object
+    public function getUserInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myUserInfo = new UserInfo();
@@ -173,8 +226,12 @@ class UserService extends BaseService
         
         //캐릭터 정보 조회
         $userInfo = $this->userRepository->getUserInfo($myUserInfo);
+        $code = new ErrorCode();
         $this->logger->info("get user service");
-        return $userInfo->toJson();
+        return [
+            'userInfo' => $userInfo->toJson(),
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
     public function getUserInfoChoice(array $input): array
@@ -187,7 +244,8 @@ class UserService extends BaseService
         $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         $payload = array();
 
-        if(!empty($userInfo)){
+        $code = new ErrorCode();
+        if(!empty($userInfo->getUserCode())){
             //캐릭터별 날씨정보 히스토리 가져오기
             $weatherHistory = new UserWeatherHistory();
             $weatherHistory->setUserCode($userInfo->getUserCode());
@@ -240,10 +298,45 @@ class UserService extends BaseService
 
             $payload['Authorization'] = 'Bearer ' .JWT::encode($token, $_SERVER['SECRET_KEY'], 'HS256');
             $payload['userInfo'] = $userInfo;
+            $payload['codeArray'] = $code->getErrorArrayItem(ErrorCode::SUCCESS);
 
+            //scribe 로그 남기기
+            date_default_timezone_set('Asia/Seoul');
+            $currentDate = date("Ymd");
+            $currentTime = date("Y-m-d H:i:s");
+
+            $dataJson = json_encode([
+                "date" => $currentTime,
+                "dateTime" => $currentTime,
+                "channel_uid" => 0,
+                "game" => ScribeService::PROJECT_NAME,
+                "server_id" => 'KR',
+                "account_id" => $data->decoded->data->accountCode,
+                "account_level" => 0,
+                "character_id" => $userInfo->getUserCode(),
+                "character_type_id" => 0,
+                "character_level" => $userInfo->getLevelCode(),
+                "app_id" => ScribeService::PROJECT_NAME,
+                "client_ip" => $_SERVER['REMOTE_ADDR'],
+                "server_ip" => $_SERVER['SERVER_ADDR'],
+                "channel" => "C2S",
+                "company" => "C2S",
+                "guid" => $_SERVER['GUID']
+            ]);
+
+            $msg[] = new \LogEntry(array(
+                'category' => 'uruk-game_character_login_log_'.$currentDate,
+                'message' => $dataJson
+            ));
+            $this->scribeService->Log($msg);
             $this->logger->info("get choice user service ");
+
+            return $payload;
+        }else{
+            return [
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::BAD_REQUEST),
+            ];
         }
-        return $payload;
     }
 
     public function getUserInfoList(array $input): array
@@ -259,17 +352,21 @@ class UserService extends BaseService
         $userInfoArrayCnt = $this->userRepository->getUserInfoListCnt($search);
 
         $this->logger->info("get list user service");
+        $code = new ErrorCode();
         if(array_filter($userInfoArray)){
             return [
                 'userInfoList' => $userInfoArray,
                 'totalCount' => $userInfoArrayCnt,
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
             ];
         }else{
-            return [];
+            return [
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::NOT_CONTENTS),
+            ];
         }
     }
 
-    public function modifyUserInfo(array $input): UserInfo
+    public function modifyUserInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myUserInfo = new UserInfo();
@@ -293,18 +390,17 @@ class UserService extends BaseService
         if (self::isRedisEnabled() === true) {
             $this->saveInCache($data->decoded->data->userCode, $result, self::USER_REDIS_KEY);
         }
+        $code = new ErrorCode();
         $this->logger->info("update user service");
-        return $result;
+        return [
+            'userInfo' => $result,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
-    public function modifyUserWeatherInfo(array $input): UserWeatherHistory
+    public function modifyUserWeatherInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
-        /*$myWeatherInfo = new UserWeatherHistory();
-        $myWeatherInfo->setWeatherHistoryCode($data->decoded->data->weatherHistoryCode);
-        $myWeatherInfo->setUserCode($data->decoded->data->userCode);
-        //캐릭터별 날씨 정보
-        $weatherHistoryInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);*/
         //캐릭터별 날씨 정보 (redis cache)
         if(self::isRedisEnabled()==true){
             $weatherHistoryInfo = $this->getOneWeatherCache($data->decoded->data->weatherHistoryCode, $data->decoded->data->userCode,self::WEATHER_REDIS_KEY);
@@ -330,10 +426,14 @@ class UserService extends BaseService
         }
 
         $this->logger->info("update user weather service");
-        return $result;
+        $code = new ErrorCode();
+        return [
+            'weatherInfo' => $result,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
-    public function getUserWeatherInfo(array $input): UserWeatherHistory
+    public function getUserWeatherInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         // 날씨 정보 조회
@@ -346,11 +446,15 @@ class UserService extends BaseService
             $weatherInfo = $this->userRepository->getUserWeatherHistory($myWeatherInfo);
         }
 
+        $code = new ErrorCode();
         $this->logger->info("get user weather service");
-        return $weatherInfo;
+        return [
+            'weatherInfo' => $weatherInfo,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
-    public function getUserShipInfo(array $input): UserShipInfo
+    public function getUserShipInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myUserShipInfo = new UserShipInfo();
@@ -359,7 +463,11 @@ class UserService extends BaseService
         //캐릭터 보로롱24 정보 조회
         $userShipInfo = $this->userRepository->getUserShipInfo($myUserShipInfo);
         $this->logger->info("get user ship service");
-        return $userShipInfo;
+        $code = new ErrorCode();
+        return [
+        'shipInfo' => $userShipInfo,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
     public function getUserInventoryList(array $input): array
@@ -374,18 +482,22 @@ class UserService extends BaseService
         $userInventoryArray = $this->userRepository->getUserInventoryList($search);
         $userInventoryArrayCnt = $this->userRepository->getUserInventoryListCnt($search);
 
+        $code = new ErrorCode();
         $this->logger->info("get list user inventory service");
         if(array_filter($userInventoryArray)){
             return [
                 'userInventoryList' => $userInventoryArray,
                 'totalCount' => $userInventoryArrayCnt,
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
             ];
         }else{
-            return [];
+            return [
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+            ];
         }
     }
 
-    public function getUserInventory(array $input): UserInventoryInfo
+    public function getUserInventory(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myUserInventory = new UserInventoryInfo();
@@ -394,11 +506,15 @@ class UserService extends BaseService
 
         //캐릭터 인벤토리 상세 조회
         $userInventory = $this->userRepository->getUserInventory($myUserInventory);
+        $code = new ErrorCode();
         $this->logger->info("get user inventory service");
-        return $userInventory;
+        return [
+            'userInventory' => $userInventory,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
-    public function removeUserInfo(array $input): int
+    public function removeUserInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myUserInfo = new UserInfo();
@@ -408,13 +524,56 @@ class UserService extends BaseService
             $myUserInfo->setUserCode($data->userCode);
         }
         //캐릭터 삭제
+        $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         $resultCode = $this->userRepository->deleteUserInfo($myUserInfo);
-        //redis 삭제 추가해야함.
-        $this->logger->info("delete user info service");
-        return $resultCode;
+        $code = new ErrorCode();
+        if($resultCode > 0){
+            //redis 삭제
+            if(self::isRedisEnabled()==true){
+                $this->deleteFromCache($myUserInfo->getUserCode(), self::USER_REDIS_KEY);
+            }
+            //scribe 로그 남기기
+            date_default_timezone_set('Asia/Seoul');
+            $currentDate = date("Ymd");
+            $currentTime = date("Y-m-d H:i:s");
+
+            $dataJson = json_encode([
+                "date" => $currentTime,
+                "dateTime" => $currentTime,
+                "channel_uid" => 0,
+                "game" => ScribeService::PROJECT_NAME,
+                "server_id" => 'KR',
+                "account_id" => $data->decoded->data->accountCode,
+                "account_level" => 0,
+                "character_id" => $userInfo->getUserCode(),
+                "character_type_id" => 0,
+                "character_level" => $userInfo->getLevelCode(),
+                "app_id" => ScribeService::PROJECT_NAME,
+                "client_ip" => $_SERVER['REMOTE_ADDR'],
+                "server_ip" => $_SERVER['SERVER_ADDR'],
+                "channel" => "C2S",
+                "company" => "C2S",
+                "guid" => $_SERVER['GUID']
+            ]);
+
+            $msg[] = new \LogEntry(array(
+                'category' => 'uruk-game_character_delete_log_'.$currentDate,
+                'message' => $dataJson
+            ));
+            $this->scribeService->Log($msg);
+            $this->logger->info("delete user info service");
+            return [
+                'deleteCount' => $resultCode,
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+            ];
+        }else{
+            return [
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::FAIL_FUNCTION),
+            ];
+        }
     }
 
-    public function removeUserInventory(array $input): int
+    public function removeUserInventory(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myUserInventory = new UserInventoryInfo();
@@ -426,11 +585,21 @@ class UserService extends BaseService
         //캐릭터 인벤토리 삭제
         $myUserInventory->setInventoryCode($data->inventoryCode);
         $resultCode = $this->userRepository->deleteUserInventory($myUserInventory);
-        $this->logger->info("delete user inventory service");
-        return $resultCode;
+        $code = new ErrorCode();
+        if($resultCode>0){
+            $this->logger->info("delete user inventory service");
+            return [
+                'deleteCount' => $resultCode,
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+            ];
+        }else{
+            return [
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::FAIL_FUNCTION),
+            ];
+        }
     }
 
-    public function getUserGiftBox(array $input): UserGitfBoxInfo
+    public function getUserGiftBox(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myBoxInfo = new UserGitfBoxInfo();
@@ -439,8 +608,18 @@ class UserService extends BaseService
 
         //캐릭터 선물함(우편함) 상세 조회
         $boxInfo = $this->userRepository->getUserGiftBoxInfo($myBoxInfo);
+        $code = new ErrorCode();
         $this->logger->info("get user gift box service");
-        return $boxInfo;
+        if($boxInfo->getUserCode() > 0){
+            return [
+                'userGiftBoxInfo' => $boxInfo,
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
+            ];
+        }else{
+            return [
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::FAIL_FUNCTION),
+            ];
+        }
     }
 
     public function getUserGiftBoxList(array $input): array
@@ -454,14 +633,16 @@ class UserService extends BaseService
         //캐릭터 선물함(우편함) 목록 조회
         $boxArray = $this->userRepository->getUserGiftBoxList($search);
         $boxArrayCnt = $this->userRepository->getUserGiftBoxListCnt($search);
+        $code = new ErrorCode();
         $this->logger->info("get list user gift box service");
         return [
             'userGiftBoxList' => $boxArray,
             'totalCount' => $boxArrayCnt,
+            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
-    public function getUserFishingItem(array $input): UserChoiceItemInfo
+    public function getUserFishingItem(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myChoiceInfo = new UserChoiceItemInfo();
@@ -470,8 +651,12 @@ class UserService extends BaseService
 
         //캐릭터 채비 상세 조회
         $choiceInfo = $this->userRepository->getUserFishingItem($myChoiceInfo);
+        $code = new ErrorCode();
         $this->logger->info("get user fishing item service");
-        return $choiceInfo;
+        return [
+            'fishingItemInfo' => $choiceInfo,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
     public function getUserFishingItemList(array $input): array
@@ -485,10 +670,12 @@ class UserService extends BaseService
         //캐릭터 채비 목록 조회
         $fishingItemArray = $this->userRepository->getUserFishingItemList($search);
         $fishingItemArrayCnt = $this->userRepository->getUserFishingItemListCnt($search);
+        $code = new ErrorCode();
         $this->logger->info("get list user fishing item service");
         return [
             'userFishingItemList' => $fishingItemArray,
             'totalCount' => $fishingItemArrayCnt,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
@@ -510,7 +697,7 @@ class UserService extends BaseService
         $search = new SearchInfo();
         $search->setUserCode($data->decoded->data->userCode);
         $inventoryCnt = $this->userRepository->getUserInventoryListCnt($search);
-
+        $code = new ErrorCode();
         if(!empty($data->boxCode)){
             $myBoxInfo->setBoxCode($data->boxCode);
             //선물
@@ -557,7 +744,7 @@ class UserService extends BaseService
                         }
                     }else{
                         return [
-                            'message' => "선물(아이템)을 받으면 인벤토리가 넘칩니다. 인벤토리를 정리해주세요.",
+                            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
                         ];
                     }
                 } else{
@@ -587,7 +774,7 @@ class UserService extends BaseService
                             $this->userRepository->createUserInventoryInfo($myInventory);
                         }else{
                             return [
-                                'message' => "선물(아이템)을 받으면 인벤토리가 넘칩니다. 인벤토리를 정리해주세요.",
+                                'codeArray' => $code->getErrorArrayItem(ErrorCode::FULL_DATA),
                             ];
                         }
                     }
@@ -599,11 +786,11 @@ class UserService extends BaseService
                     $this->saveInCache($user->getUserCode(), $user, self::USER_REDIS_KEY);
                 }
                 return [
-                    'message' => "선물을 받았습니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::GIFT_SUCCESS),
                 ];
             }else{
                 return [
-                    'message' => "선물 이미 받았습니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::REDUPLICATION_CONTENTS),
                 ];
             }
         }else{
@@ -683,16 +870,16 @@ class UserService extends BaseService
                         $this->saveInCache($user->getUserCode(), $user, self::USER_REDIS_KEY);
                     }
                     return [
-                        'message' => "선물들을 모두 받았습니다.",
+                        'codeArray' => $code->getErrorArrayItem(ErrorCode::GIFT_SUCCESS),
                     ];
                 }else{
                     return [
-                        'message' => "선물(아이템)을 받으면 인벤토리가 넘칩니다. 인벤토리를 정리해주세요.",
+                        'codeArray' => $code->getErrorArrayItem(ErrorCode::FULL_DATA),
                     ];
                 }
             }else{
                 return [
-                    'message' => "이미 선물들을 모두 받았습니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::REDUPLICATION_CONTENTS),
                 ];
             }
         }
@@ -708,15 +895,17 @@ class UserService extends BaseService
         }else{
             $myBoxInfo->setBoxCode(0);
         }
-        $this->userRepository->deleteUserGiftBox($myBoxInfo);
-
+        $resultCode = $this->userRepository->deleteUserGiftBox($myBoxInfo);
+        $code = new ErrorCode();
         $this->logger->info("delete user giftBox item service");
         return [
-            'message' => "선물 아이템을 삭제했습니다.",
+            'deleteCount' => $resultCode,
+            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
-    public function modifyUserFishingItem(array $input): array{
+    public function modifyUserFishingItem(array $input): array
+    {
         $data = json_decode((string) json_encode($input), false);
         $myChoiceItem = new UserChoiceItemInfo();
         $myChoiceItem->setUserCode($data->decoded->data->userCode);
@@ -753,11 +942,11 @@ class UserService extends BaseService
 
         //채비 수정
         $this->userRepository->createUserFishingItem($choiceInfo);
-
+        $code = new ErrorCode();
         $this->logger->info("update user fishing-item Service");
         return [
             'fishingItemInfo' => $choiceInfo,
-            'message' => "채비 장비를 수정했습니다.",
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
@@ -768,9 +957,10 @@ class UserService extends BaseService
         $myChoiceItem->setUserCode($data->decoded->data->userCode);
         $myChoiceItem->setChoiceCode($data->choiceCode);
         $this->userRepository->deleteUserFishingItem($myChoiceItem);
+        $code = new ErrorCode();
         $this->logger->info("delete user fishing-item service");
         return [
-            'message' => "채비 장비를 삭제했습니다.",
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
@@ -781,10 +971,11 @@ class UserService extends BaseService
         $myDictionary->setUserCode($data->decoded->data->userCode);
         $myDictionary->setMapFishCode($data->mapFishCode);
         $dictionary = $this->userRepository->getUserFishDictionaryInfo($myDictionary);
-
+        $code = new ErrorCode();
         $this->logger->info("get user fish dictionary service");
         return [
             'fishDictionary' => $dictionary,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
@@ -798,10 +989,12 @@ class UserService extends BaseService
 
         $dictionaryArray = $this->userRepository->getUserFishDictionaryList($search);
         $dictionaryArrayCnt = $this->userRepository->getUserFishDictionaryListCnt($search);
+        $code = new ErrorCode();
         $this->logger->info("get list user fish dictionary service");
         return [
             'fishDictionaryList' => $dictionaryArray,
             'totalCount' => $dictionaryArrayCnt,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 

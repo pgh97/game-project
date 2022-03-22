@@ -8,6 +8,7 @@ use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
 use App\Domain\Quest\Entity\QuestInfoData;
 use App\Domain\Quest\Repository\QuestRepository;
+use App\Exception\ErrorCode;
 use Psr\Log\LoggerInterface;
 
 class QuestService extends BaseService
@@ -30,7 +31,7 @@ class QuestService extends BaseService
         $this->redisService = $redisService;
     }
 
-    public function getQuestInfo(array $input):QuestInfoData
+    public function getQuestInfo(array $input):array
     {
         $data = json_decode((string) json_encode($input), false);
         $myQuestInfo = new QuestInfoData();
@@ -43,9 +44,13 @@ class QuestService extends BaseService
             $questInfo = $this->questRepository->getQuestInfo($myQuestInfo);
         }
 
+        $code = new ErrorCode();
         $myQuestInfo->setQuestCode($data->questCode);
         $this->logger->info("get quest info service");
-        return $questInfo;
+        return [
+            'questInfo' => $questInfo,
+            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
     public function getQuestInfoList(array $input): array
@@ -64,10 +69,12 @@ class QuestService extends BaseService
             $questArray = $this->questRepository->getQuestInfoList($search);
             $questArrayCnt = $this->questRepository->getQuestInfoListCnt($search);
         }
+        $code = new ErrorCode();
         $this->logger->info("get list quest info service");
         return [
             'questList' => $questArray,
             'totalCount' => $questArrayCnt,
+            'codeArray' => $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 }

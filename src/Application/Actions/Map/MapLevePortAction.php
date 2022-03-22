@@ -5,6 +5,7 @@ namespace App\Application\Actions\Map;
 use App\Application\Actions\ActionError;
 use App\Domain\DomainException\DomainRecordNotFoundException;
 use App\Domain\Map\Service\MapService;
+use App\Exception\ErrorCode;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpBadRequestException;
@@ -18,15 +19,19 @@ class MapLevePortAction extends MapAction
             ,$this->auctionRepository ,$this->fishingRepository ,$this->questRepository
             ,$this->commonRepository, $this->redisService);
         $payload = $service->mapLevePort($input);
-        if(array_filter($payload)){
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
+        if($codeArray['statusCode']==200){
             $this->logger->info("success leve port action");
-            $message = $payload['message'];
-            unset($payload['message']);
-            return $this->respondWithData($payload, 200, null, $message);
+            return $this->respondWithData($payload, 200, null, $codeArray);
+        }elseif($codeArray['statusCode']==5003){
+            $this->logger->info("fail leve port action");
+            $error = new ActionError($codeArray['statusCode'],  ErrorCode::NOT_FULL_SHIP, $codeArray['message']);
+            return $this->respondWithData(null, 200, $error);
         }else{
             $this->logger->info("fail leve port action");
-            $error = new ActionError("400",  ActionError::BAD_REQUEST, '캐릭터의 피로도 또는 보로롱24 내구도가 부족합니다.');
-            return $this->respondWithData(null, 401, $error);
+            $error = new ActionError($codeArray['statusCode'],  ErrorCode::NOT_LEVEL, $codeArray['message']);
+            return $this->respondWithData(null, 200, $error);
         }
     }
 }

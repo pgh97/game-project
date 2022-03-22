@@ -80,14 +80,22 @@ class UserDBRepository extends BaseRepository implements UserRepository
             FROM `user_info`
             WHERE user_code = :userCode
         ';
-
+        //AND account_code = :accountCode
         $statement = $this->database->prepare($query);
         $userCode = $userInfo->getUserCode();
+        //$accountCode = $userInfo->getAccountCode();
 
         $statement->bindParam(':userCode', $userCode);
+        //$statement->bindParam(':accountCode', $accountCode);
         $statement->execute();
 
-        return $statement->fetchObject(UserInfo::class);
+        if($statement->rowCount() > 0){
+            return $statement->fetchObject(UserInfo::class);
+        }else{
+            $failUser = new UserInfo();
+            $failUser->setUserCode(0);
+            return $failUser;
+        }
     }
 
     public function getUserInfoList(SearchInfo $searchInfo): array
@@ -1181,7 +1189,13 @@ class UserDBRepository extends BaseRepository implements UserRepository
         $statement->bindParam(':boxCode', $boxCode);
         $statement->execute();
 
-        return $statement->fetchObject(UserGitfBoxInfo::class);
+        if($statement->rowCount() > 0){
+            return $statement->fetchObject(UserGitfBoxInfo::class);
+        }else{
+            $failBox = new UserGitfBoxInfo();
+            $failBox->setUserCode(0);
+            return $failBox;
+        }
     }
 
     public function modifyUserInventoryFishDurability(UserInventoryInfo $inventoryInfo): int

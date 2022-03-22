@@ -16,6 +16,7 @@ use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Repository\UserRepository;
+use App\Exception\ErrorCode;
 use Psr\Log\LoggerInterface;
 
 class UpgradeService extends BaseService
@@ -72,6 +73,7 @@ class UpgradeService extends BaseService
         }
 
         //업그레이드 가능한지 비교
+        $code = new ErrorCode();
         if($originalItem->getMaxUpgrade() > $itemInfo->getUpgradeLevel()){
             //fishing_item_upgrade_data에서 업로드 효과 조회
             $upgradeInfo = new FishingItemUpgradeData();
@@ -121,23 +123,23 @@ class UpgradeService extends BaseService
                     return [
                         'moneyCode' => $upgradeInfo->getMoneyCode(),
                         'moneyPrice' => $upgradeInfo->getUpgradePrice(),
-                        'message' => "장비를 업그레이드했습니다.",
+                        'codeArray' => $code->getErrorArrayItem(ErrorCode::UPGRADE_SUCCESS),
                     ];
                 }else{
                     return [
                         'moneyCode' => $upgradeInfo->getMoneyCode(),
                         'moneyPrice' => $upgradeInfo->getUpgradePrice(),
-                        'message' => "업그레이드에 필요한 재화가 부족합니다.",
+                        'codeArray' => $code->getErrorArrayItem(ErrorCode::NO_MONEY),
                     ];
                 }
             }else{
                 return [
-                    'message' => "업그레이드에 필요한 부품이 부족합니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::NO_UPGRADE_ITEM),
                 ];
             }
         }else{
             return [
-                'message' => "해당 장비는 최대 업그레이드 상태입니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::ALREADY_FULL),
             ];
         }
     }
@@ -164,6 +166,7 @@ class UpgradeService extends BaseService
         $originalItem = $this->commonRepository->getShipInfo($originalItem);
 
         //업그레이드 가능한지 비교
+        $code = new ErrorCode();
         if($originalItem->getMaxUpgrade() > $itemInfo->getUpgradeLevel()){
             //ship_item_upgrade_data 조회
             $upgradeInfo = new ShipItemUpgradeData();
@@ -205,25 +208,25 @@ class UpgradeService extends BaseService
                     return [
                         'moneyCode' => $upgradeInfo->getMoneyCode(),
                         'moneyPrice' => $upgradeInfo->getUpgradePrice(),
-                        'message' => "보로롱24호 업그레이드에 성공했습니다.",
+                        'codeArray' => $code->getErrorArrayItem(ErrorCode::UPGRADE_SUCCESS),
                     ];
                 }else{
                     return [
                         'moneyCode' => $upgradeInfo->getMoneyCode(),
                         'moneyPrice' => $upgradeInfo->getUpgradePrice(),
-                        'message' => "보로롱24호 업그레이드에 실패했습니다...",
+                        'codeArray' => $code->getErrorArrayItem(ErrorCode::UPGRADE_FAIL),
                     ];
                 }
             }else{
                 return [
                     'moneyCode' => $upgradeInfo->getMoneyCode(),
                     'moneyPrice' => $upgradeInfo->getUpgradePrice(),
-                    'message' => "보로롱24호 업그레이드에 필요한 재화가 부족합니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::NO_MONEY),
                 ];
             }
         }else{
             return [
-                'message' => "보로롱24호는 최대 업그레이드 상태입니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::ALREADY_FULL),
             ];
         }
     }

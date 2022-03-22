@@ -14,11 +14,11 @@ class DeleteUserFishingItemAction extends UserAction
     {
         $input = (array) $request->getParsedBody();
         $service = new UserService($this->logger, $this->userRepository, $this->upgradeRepository
-            , $this->fishingRepository,$this->commonRepository, $this->redisService);
+            , $this->fishingRepository,$this->commonRepository, $this->scribeService, $this->redisService);
         $payload = $service->deleteUserFishingItem($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("delete user fishing-item action");
-        $message = $payload['message'];
-        unset($payload['message']);
-        return $this->respondWithData($payload, 200, null, $message);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

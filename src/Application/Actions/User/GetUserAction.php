@@ -13,12 +13,11 @@ class GetUserAction extends UserAction
     {
         $input = (array) $request->getParsedBody();
         $service = new UserService($this->logger, $this->userRepository, $this->upgradeRepository
-            , $this->fishingRepository, $this->commonRepository, $this->redisService);
-        $userInfo = $service->getUserInfo($input);
-        $payload = [
-            'userInfo' => $userInfo
-        ];
+            , $this->fishingRepository, $this->commonRepository, $this->scribeService, $this->redisService);
+        $payload = $service->getUserInfo($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("get user info Action");
-        return $this->respondWithData($payload);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

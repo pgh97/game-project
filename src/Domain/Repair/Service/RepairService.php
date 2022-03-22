@@ -14,6 +14,7 @@ use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Repository\UserRepository;
+use App\Exception\ErrorCode;
 use Psr\Log\LoggerInterface;
 
 class RepairService extends BaseService
@@ -54,6 +55,7 @@ class RepairService extends BaseService
             $myUserInfo->setUserCode($data->decoded->data->userCode);
             $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         }
+        $code = new ErrorCode();
 
         //캐릭터 인벤토리(낚시대, 낚시줄, 릴) or 보로롱24 조회
         //원본 아이템 내구도 조회
@@ -137,18 +139,18 @@ class RepairService extends BaseService
                 return [
                     'moneyCode' => $repairInfo->getMoneyCode(),
                     'moneyPrice' => $needDurability * $repairInfo->getRepairPrice(),
-                    'message' => "수리가 완료 되었습니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::FULL_SUCCESS),
                 ];
             } else {
                 return [
                     'moneyCode' => $repairInfo->getMoneyCode(),
                     'moneyPrice' => $needDurability * $repairInfo->getRepairPrice(),
-                    'message' => "수리를 하기에 재화가 부족합니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::NO_MONEY),
                 ];
             }
         }else{
             return [
-                'message' => "내구도가 최대치입니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::ALREADY_FULL),
             ];
         }
     }
@@ -170,6 +172,7 @@ class RepairService extends BaseService
         $levelInfo = $this->userRepository->getUserLevelInfo($myLevelInfo);
         //캐릭터 재화에 수리비용 충분한지 비교
         $fatigue = $levelInfo->getMaxFatigue() - $userInfo->getFatigue();
+        $code = new ErrorCode();
         if($fatigue != 0){
             if($userInfo->getMoneyGold() >= ($fatigue * 10)){
                 //캐릭터 재화 소비 및 피로도 수정
@@ -184,16 +187,16 @@ class RepairService extends BaseService
                 return [
                     'moneyCode' => 1,
                     'moneyPrice' => $fatigue * 10,
-                    'message' => "캐릭터 피로도 충전 되었습니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::FULL_SUCCESS),
                 ];
             }else{
                 return [
-                    'message' => "재화가 부족합니다.",
+                    'codeArray' => $code->getErrorArrayItem(ErrorCode::NO_MONEY),
                 ];
             }
         }else{
             return [
-                'message' => "이미 캐릭터 피로도는 최대치입니다.",
+                'codeArray' => $code->getErrorArrayItem(ErrorCode::ALREADY_FULL),
             ];
         }
     }

@@ -15,18 +15,11 @@ class CreateUserFishingItemAction extends UserAction
     {
         $input = (array) $request->getParsedBody();
         $service = new UserService($this->logger, $this->userRepository, $this->upgradeRepository
-            , $this->fishingRepository, $this->commonRepository, $this->redisService);
-        $choiceCode = $service->createUserFishingItem($input);
-        $payload = array();
-
-        if($choiceCode==0){
-            $this->logger->info("fail create user fishing-item Action");
-            $error = new ActionError("400",  ActionError::BAD_REQUEST, '채비 저장 횟수 초과했습니다.');
-            return $this->respondWithData(null, 400, $error);
-        }else{
-            $payload['choiceCode'] = $choiceCode;
-            $this->logger->info("create user fishing-item Action");
-            return $this->respondWithData($payload);
-        }
+            , $this->fishingRepository, $this->commonRepository, $this->scribeService, $this->redisService);
+        $payload = $service->createUserFishingItem($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
+        $this->logger->info("create user fishing-item Action");
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

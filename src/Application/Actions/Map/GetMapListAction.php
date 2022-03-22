@@ -17,7 +17,9 @@ class GetMapListAction extends MapAction
             ,$this->auctionRepository ,$this->fishingRepository ,$this->questRepository
             ,$this->commonRepository, $this->redisService);
         $payload = $service->getMapInfoList($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("map info list service");
-        return $this->respondWithData($payload);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

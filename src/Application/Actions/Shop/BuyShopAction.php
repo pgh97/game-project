@@ -16,9 +16,9 @@ class BuyShopAction extends ShopAction
         $service = new ShopService($this->logger, $this->shopRepository, $this->userRepository
             ,$this->commonRepository, $this->redisService);
         $payload = $service->buyShopInfo($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("buy shop info action");
-        $message = $payload['message'];
-        unset($payload['message']);
-        return $this->respondWithData($payload, 200, null, $message);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

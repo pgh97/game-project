@@ -20,6 +20,7 @@ use App\Domain\User\Entity\UserQuestInfo;
 use App\Domain\User\Entity\UserShipInfo;
 use App\Domain\User\Entity\UserWeatherHistory;
 use App\Domain\User\Repository\UserRepository;
+use App\Exception\ErrorCode;
 use Psr\Log\LoggerInterface;
 
 class MapService extends BaseService
@@ -57,16 +58,20 @@ class MapService extends BaseService
         $this->redisService = $redisService;
     }
 
-    public function getMapInfo(array $input): MapInfoData
+    public function getMapInfo(array $input): array
     {
         $data = json_decode((string) json_encode($input), false);
         $myMapInfo = new MapInfoData();
         $myMapInfo->setMapCode($data->mapCode);
 
         //지역 상세 조회
-        $mapInfo = $this->mapRepository->getMapInfo($myMapInfo) ;
+        $mapInfo = $this->mapRepository->getMapInfo($myMapInfo);
+        $code = new ErrorCode();
         $this->logger->info("map info service");
-        return $mapInfo;
+        return [
+            'mapInfo' => $mapInfo,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
+        ];
     }
 
     public function getMapInfoList(array $input): array
@@ -79,11 +84,12 @@ class MapService extends BaseService
         //지역 목록 조회
         $mapArray = $this->mapRepository->getMapInfoList($search);
         $mapArrayCnt = $this->mapRepository->getMapInfoListCnt($search);
-
+        $code = new ErrorCode();
         $this->logger->info("map info list service");
         return [
             'mapInfoList' => $mapArray,
             'totalCount' => $mapArrayCnt,
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
@@ -118,6 +124,7 @@ class MapService extends BaseService
             $userInfo = $this->userRepository->getUserInfo($myUserInfo);
         }
 
+        $code = new ErrorCode();
         $this->logger->info("map leve port service");
         //출항 가능한 최소 레벨 충족 여부 비교
         if($userInfo->getLevelCode() >= $mapInfo->getMinLevel()){
@@ -151,7 +158,7 @@ class MapService extends BaseService
                     'mapTideInfo' => $mapTideInfo,
                     'userInfo' => $userInfo,
                     'shipInfo' => $shipInfo,
-                    'message' => $mapInfo->getMapName()."으로 출항했습니다.",
+                    'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
                 ];
             }else{
                 return [
@@ -159,7 +166,7 @@ class MapService extends BaseService
                     'mapTideInfo' => $mapTideInfo,
                     'userInfo' => $userInfo,
                     'shipInfo' => $shipInfo,
-                    'message' => '보로롱24의 내구도와 연로 혹은 피로도를 확인해주세요.'
+                    'codeArray' =>  $code->getErrorArrayItem(ErrorCode::NOT_FULL_SHIP),
                 ];
             }
         }else{
@@ -168,7 +175,7 @@ class MapService extends BaseService
                 'mapTideInfo' => $mapTideInfo,
                 'userInfo' => $userInfo,
                 'shipInfo' => $shipInfo,
-                'message' => '최소레벨을 충족하지 못해서 입장할 수 없습니다.'
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::NOT_LEVEL),
             ];
         }
     }
@@ -203,6 +210,8 @@ class MapService extends BaseService
             $myMapTideInfo->setTideSort(1);
             $mapTideInfo = $this->mapRepository->getMapTideInfo($myMapTideInfo);
         }
+
+        $code = new ErrorCode();
 
         date_default_timezone_set('Asia/Seoul');
         $currentTime = date("Y-m-d H:i:s");
@@ -276,11 +285,11 @@ class MapService extends BaseService
             'mapTideInfo' => $mapTideInfo,
             'userInfo' => $userInfo,
             'shipInfo' => $shipInfo,
-            'message' => "항구로 입항했습니다.",
+            'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS),
         ];
     }
 
-    public function modifyShipDurability(array $input):UserShipInfo
+    public function modifyShipDurability(array $input):array
     {
         $data = json_decode((string) json_encode($input), false);
         $myShipInfo = new UserShipInfo();
@@ -307,6 +316,7 @@ class MapService extends BaseService
         $perMinute = floor($timeDif / (60));
 
         $this->logger->info("map ship durability service");
+        $code = new ErrorCode();
         if($shipInfo->getDurability() >= $perMinute * $mapInfo->getPerDurability()){
             $shipInfo->setDurability($shipInfo->getDurability() - ($perMinute * $mapInfo->getPerDurability()));
             $this->userRepository->modifyUserShip($shipInfo);
@@ -321,9 +331,14 @@ class MapService extends BaseService
                 $this->saveInCache($data->decoded->data->weatherHistoryCode, $weatherInfo, self::WEATHER_REDIS_KEY);
             }
 
-            return $this->userRepository->getUserShipInfo($myShipInfo);
+            return [
+                'userShipInfo' => $this->userRepository->getUserShipInfo($myShipInfo),
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::SUCCESS_CREATED),
+            ];
         }else{
-            return $shipInfo;
+            return [
+                'codeArray' =>  $code->getErrorArrayItem(ErrorCode::NOT_FULL_SHIP),
+            ];
         }
     }
 

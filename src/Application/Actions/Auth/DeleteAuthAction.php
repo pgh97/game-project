@@ -14,15 +14,11 @@ class DeleteAuthAction extends AuthAction
     protected function action(Request $request, Response $response): Response
     {
         $input = (array) $request->getParsedBody();
-        $service = new AccountInfoService($this->logger ,$this->accountInfoRepository);
+        $service = new AccountInfoService($this->logger ,$this->accountInfoRepository
+            ,$this->scribeService, $this->redisService);
         $payload = $service->removeAccountInfo($input);
-        if($payload==0){
-            $this->logger->info("fail delete account info Action");
-            $error = new ActionError("400",  ActionError::BAD_REQUEST, '회원탈퇴가 실패했습니다.');
-            return $this->respondWithData(null, 400, $error);
-        }else{
-            $this->logger->info("delete account info Action");
-            return $this->respondWithData($payload,200,null,"회원탈퇴가 되었습니다.");
-        }
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

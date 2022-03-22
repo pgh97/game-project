@@ -14,10 +14,11 @@ class GetUserGiftBoxAction extends UserAction
     {
         $input = (array) $request->getParsedBody();
         $service = new UserService($this->logger, $this->userRepository, $this->upgradeRepository
-            , $this->fishingRepository,$this->commonRepository, $this->redisService);
-        $payload = array();
-        $payload['userGiftBoxInfo'] = $service->getUserGiftBox($input);
+            , $this->fishingRepository,$this->commonRepository, $this->scribeService, $this->redisService);
+        $payload = $service->getUserGiftBox($input);
+        $codeArray = $payload['codeArray'];
+        unset($payload['codeArray']);
         $this->logger->info("get user gift box Action");
-        return $this->respondWithData($payload);
+        return $this->respondWithData($payload, 200, null, $codeArray);
     }
 }

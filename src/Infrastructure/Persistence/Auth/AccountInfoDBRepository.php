@@ -108,9 +108,9 @@ class AccountInfoDBRepository extends BaseRepository implements AccountInfoRepos
         $query = '
             DELETE A, U, UI, US, UW
             FROM account_info A 
-            JOIN user_info U ON A.account_code = U.account_code
-            JOIN user_inventory_info UI ON U.user_code = UI.user_code
-            JOIN user_ship_info US ON U.user_code = US.user_code
+            LEFT JOIN user_info U ON A.account_code = U.account_code
+            LEFT JOIN user_inventory_info UI ON U.user_code = UI.user_code
+            LEFT JOIN user_ship_info US ON U.user_code = US.user_code
             LEFT JOIN user_weather_history UW ON U.user_code = UW.user_code
             WHERE A.account_code =:accountCode
         ';
@@ -209,6 +209,24 @@ class AccountInfoDBRepository extends BaseRepository implements AccountInfoRepos
         $statement->bindParam(':accountCode', $accountCode);
         $statement->execute();
 
-        return (int) $this->database->lastInsertId();
+        return $statement->rowCount();
+    }
+
+    public function getAccountIdCount(AccountInfo $accountInfo): int
+    {
+        $query = '
+            SELECT 
+                COUNT(*)    AS count
+            FROM `account_info`
+            WHERE account_id = :accountId
+        ';
+
+        $statement = $this->database->prepare($query);
+        $accountId = $accountInfo->getAccountId();
+
+        $statement->bindParam(':accountId', $accountId);
+        $statement->execute();
+
+        return $statement->fetchColumn();
     }
 }

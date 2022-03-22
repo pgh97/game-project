@@ -73,7 +73,7 @@ abstract class Action
     /**
      * @param array|object|null $data
      */
-    protected function respondWithData($data = null, int $statusCode = 200 ,?ActionError $error = null, ?string $message = null): Response
+    protected function respondWithData($data = null, int $statusCode = 200 ,?ActionError $error = null, ?array $message = null): Response
     {
         $payload = new ActionPayload($statusCode, $data, $message, $error);
 
