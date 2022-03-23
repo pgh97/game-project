@@ -131,6 +131,7 @@ class AccountInfoService
             date_default_timezone_set('Asia/Seoul');
             $currentDate = date("Ymd");
             $currentTime = date("Y-m-d H:i:s");
+            $levelCode = $this->accountInfoRepository->getUserInfoMaxLevel($accountInfo);
 
             $dataJson = json_encode([
                 "date" => $currentTime,
@@ -140,7 +141,7 @@ class AccountInfoService
                 "app_id" => ScribeService::PROJECT_NAME,
                 "client_ip" => $_SERVER['REMOTE_ADDR'],
                 "server_ip" => $_SERVER['SERVER_ADDR'],
-                "level" => 0,
+                "level" => $levelCode,
                 "guid" => $_SERVER['GUID']
             ]);
 
@@ -240,6 +241,7 @@ class AccountInfoService
         $code = new ErrorCode();
         if($resultCode > 0){
             $this->accountInfoRepository->deleteAccountInfo($myAccountInfo);
+            $levelCode = $this->accountInfoRepository->getUserInfoMaxLevel($myAccountInfo);
             //scribe 로그 남기기
             date_default_timezone_set('Asia/Seoul');
             $currentDate = date("Ymd");
@@ -250,7 +252,7 @@ class AccountInfoService
                 "channel" => "C2S",
                 "user_id" => $myAccountInfo->getAccountCode(),
                 "app_id" => ScribeService::PROJECT_NAME,
-                "level" => 0,
+                "level" => $levelCode,
                 "client_ip" => $_SERVER['REMOTE_ADDR'],
                 "server_ip" => $_SERVER['SERVER_ADDR'],
             ]);

@@ -9,20 +9,6 @@ use App\Infrastructure\Persistence\BaseRepository;
 
 class AccountInfoDBRepository extends BaseRepository implements AccountInfoRepository
 {
-//    public function checkAndGetAccountInfo(int $accountCode): AccountInfo
-//    {
-//        $query = 'SELECT * FROM `account_info` WHERE `account` = :id';
-//        $statement = $this->database->prepare($query);
-//        $statement->bindParam(':id', $noteId);
-//        $statement->execute();
-//        $note = $statement->fetchObject(Note::class);
-//        if (! $note) {
-//            throw new \App\Exception\Note('Note not found.', 404);
-//        }
-//
-//        return $note;
-//    }
-
     public function createAccountInfo(AccountInfo $accountInfo): int
     {
         $query = '
@@ -225,6 +211,24 @@ class AccountInfoDBRepository extends BaseRepository implements AccountInfoRepos
         $accountId = $accountInfo->getAccountId();
 
         $statement->bindParam(':accountId', $accountId);
+        $statement->execute();
+
+        return $statement->fetchColumn();
+    }
+
+    public function getUserInfoMaxLevel(AccountInfo $accountInfo): int
+    {
+        $query = '
+            SELECT 
+                IF(max(level_code) IS NULL, 0, max(level_code)) AS levelCode
+            FROM `user_info`
+            WHERE account_code = :accountCode
+        ';
+
+        $statement = $this->database->prepare($query);
+        $accountCode = $accountInfo->getAccountCode();
+
+        $statement->bindParam(':accountCode', $accountCode);
         $statement->execute();
 
         return $statement->fetchColumn();

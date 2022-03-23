@@ -133,7 +133,7 @@ class UserService extends BaseService
             $dataJson = json_encode([
                 "date" => $currentTime,
                 "dateTime" => $currentTime,
-                "channel_uid" => 0,
+                "channel_uid" => "0",
                 "game" => ScribeService::PROJECT_NAME,
                 "server_id" => 'KR',
                 "account_id" => $data->decoded->data->accountCode,
@@ -150,7 +150,7 @@ class UserService extends BaseService
             ]);
 
             $msg[] = new \LogEntry(array(
-                'category' => 'uruk-game_character_creation_log_'.$currentDate,
+                'category' => 'uruk_game_character_creation_log_'.$currentDate,
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg);
@@ -308,7 +308,7 @@ class UserService extends BaseService
             $dataJson = json_encode([
                 "date" => $currentTime,
                 "dateTime" => $currentTime,
-                "channel_uid" => 0,
+                "channel_uid" => "0",
                 "game" => ScribeService::PROJECT_NAME,
                 "server_id" => 'KR',
                 "account_id" => $data->decoded->data->accountCode,
@@ -325,7 +325,7 @@ class UserService extends BaseService
             ]);
 
             $msg[] = new \LogEntry(array(
-                'category' => 'uruk-game_character_login_log_'.$currentDate,
+                'category' => 'uruk_game_character_login_log_'.$currentDate,
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg);
@@ -540,7 +540,7 @@ class UserService extends BaseService
             $dataJson = json_encode([
                 "date" => $currentTime,
                 "dateTime" => $currentTime,
-                "channel_uid" => 0,
+                "channel_uid" => "0",
                 "game" => ScribeService::PROJECT_NAME,
                 "server_id" => 'KR',
                 "account_id" => $data->decoded->data->accountCode,
@@ -557,7 +557,7 @@ class UserService extends BaseService
             ]);
 
             $msg[] = new \LogEntry(array(
-                'category' => 'uruk-game_character_delete_log_'.$currentDate,
+                'category' => 'uruk_game_character_delete_log_'.$currentDate,
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg);

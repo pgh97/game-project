@@ -55,4 +55,10 @@ interface AccountInfoRepository
      * @return int
      */
     public function getAccountIdCount(AccountInfo $accountInfo): int;
+
+    /**
+     * @param AccountInfo $accountInfo
+     * @return int
+     */
+    public function getUserInfoMaxLevel(AccountInfo $accountInfo): int;
 }

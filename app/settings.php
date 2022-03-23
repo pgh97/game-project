@@ -11,13 +11,15 @@ return function (ContainerBuilder $containerBuilder) {
     // Global Settings Object
     $containerBuilder->addDefinitions([
         SettingsInterface::class => function () {
+            date_default_timezone_set('Asia/Seoul');
+            $currentDay = date("Ymd");
             return new Settings([
                 'displayErrorDetails' => true, // Should be set to false in production
                 'logError'            => false,
                 'logErrorDetails'     => false,
                 'logger' => [
                     'name' => 'uruk-game',
-                    'path' => isset($_ENV['docker']) ? 'php://stdout' : '/game/public_html/logs/app.log',
+                    'path' => isset($_ENV['docker']) ? 'php://stdout' : "/game/public_html/logs/app_".$currentDay.".log",
                     'level' => Logger::DEBUG,
                 ],
                 "db" => [

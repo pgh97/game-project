@@ -52,7 +52,7 @@
     }
   },
   "scripts": {
-    "start": "php -S localhost:8888 -t public",
+    "start": "php -S localhost -t public",
     "test": "phpunit"
   }
 }
