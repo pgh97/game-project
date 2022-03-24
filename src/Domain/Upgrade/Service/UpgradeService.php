@@ -7,6 +7,7 @@ use App\Domain\Common\Entity\Ship\ShipInfoData;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Common\Service\ScribeService;
 use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Upgrade\Entity\FishingItemUpgradeData;
 use App\Domain\Upgrade\Entity\ShipItemUpgradeData;
@@ -25,6 +26,7 @@ class UpgradeService extends BaseService
     protected UserRepository $userRepository;
     protected FishingRepository $fishingRepository;
     protected CommonRepository $commonRepository;
+    protected ScribeService $scribeService;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
 
@@ -36,6 +38,7 @@ class UpgradeService extends BaseService
         ,UserRepository $userRepository
         ,FishingRepository $fishingRepository
         ,CommonRepository $commonRepository
+        ,ScribeService $scribeService
         ,RedisService $redisService)
     {
         $this->logger = $logger;
@@ -43,6 +46,7 @@ class UpgradeService extends BaseService
         $this->userRepository = $userRepository;
         $this->fishingRepository = $fishingRepository;
         $this->commonRepository = $commonRepository;
+        $this->scribeService = $scribeService;
         $this->redisService = $redisService;
     }
 
@@ -104,7 +108,7 @@ class UpgradeService extends BaseService
                     //인벤토리 업그레이드 수정
                     $itemInfo->setUpgradeCode($upgradeInfo->getUpgradeCode());
                     $itemInfo->setUpgradeLevel($upgradeInfo->getUpgradeLevel());
-                    $itemInfo->setItemDurability($itemInfo->getItemDurability()+round($originalItem->getDurability()*$upgradeInfo->getAddProbability()/10));
+                    $itemInfo->setItemDurability($originalItem->getDurability()+round($originalItem->getDurability()*$upgradeInfo->getAddProbability()/10));
                     $this->userRepository->createUserInventoryInfo($itemInfo);
                     
                     //인벤토리 업그레이드 부품 필요한 카운트 만큼 제거
@@ -120,6 +124,73 @@ class UpgradeService extends BaseService
                         $userInfo = $this->userRepository->getUserInfo($userInfo);
                         $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
                     }
+
+                    //scribe 로그 남기기
+                    date_default_timezone_set('Asia/Seoul');
+                    $currentDate = date("Ymd");
+                    $currentTime = date("Y-m-d H:i:s");
+
+                    //업그레이드 로그 남기기
+                    $dataJson = json_encode([
+                        "date" => $currentTime,
+                        "dateTime" => $currentTime,
+                        "channel_uid" => "0",
+                        "game" => ScribeService::PROJECT_NAME,
+                        "server_id" => 'KR',
+                        "account_id" => $data->decoded->data->accountCode,
+                        "account_level" => 0,
+                        "character_id" => $userInfo->getUserCode(),
+                        "character_type_id" => 0,
+                        "character_level" => $userInfo->getLevelCode(),
+                        "character_upgrade_id" => $upgradeInfo->getUpgradeCode(),
+                        "character_upgrade_level" => $upgradeInfo->getUpgradeLevel(),
+                        "character_upgrade_price" => $upgradeInfo->getUpgradePrice(),
+                        "character_upgrade_type" => 1,
+                        "app_id" => ScribeService::PROJECT_NAME,
+                        "client_ip" => $_SERVER['REMOTE_ADDR'],
+                        "server_ip" => $_SERVER['SERVER_ADDR'],
+                        "channel" => "C2S",
+                        "company" => "C2S",
+                        "guid" => $_SERVER['GUID']
+                    ]);
+
+                    $msg1[] = new \LogEntry(array(
+                        'category' => 'uruk_game_character_upgrade_log_'.$currentDate,
+                        'message' => $dataJson
+                    ));
+                    $this->scribeService->Log($msg1);
+
+                    //재화 로그 남기기
+                    $dataJson2 = json_encode([
+                        "date" => $currentTime,
+                        "dateTime" => $currentTime,
+                        "channel_uid" => "0",
+                        "game" => ScribeService::PROJECT_NAME,
+                        "server_id" => 'KR',
+                        "account_id" => $data->decoded->data->accountCode,
+                        "account_level" => 0,
+                        "character_id" => $userInfo->getUserCode(),
+                        "character_type_id" => 0,
+                        "character_level" => $userInfo->getLevelCode(),
+                        "character_money_id" => $upgradeInfo->getMoneyCode(),
+                        "character_money_item_id" => $upgradeInfo->getUpgradeCode(),
+                        "character_money_item_type" => 2,
+                        "character_money_type" => 2,
+                        "character_money_price" => $upgradeInfo->getUpgradePrice(),
+                        "app_id" => ScribeService::PROJECT_NAME,
+                        "client_ip" => $_SERVER['REMOTE_ADDR'],
+                        "server_ip" => $_SERVER['SERVER_ADDR'],
+                        "channel" => "C2S",
+                        "company" => "C2S",
+                        "guid" => $_SERVER['GUID']
+                    ]);
+
+                    $msg2[] = new \LogEntry(array(
+                        'category' => 'uruk_game_character_money_log_'.$currentDate,
+                        'message' => $dataJson2
+                    ));
+                    $this->scribeService->Log($msg2);
+
                     return [
                         'moneyCode' => $upgradeInfo->getMoneyCode(),
                         'moneyPrice' => $upgradeInfo->getUpgradePrice(),
@@ -205,6 +276,73 @@ class UpgradeService extends BaseService
                         $userInfo = $this->userRepository->getUserInfo($userInfo);
                         $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
                     }
+
+                    //scribe 로그 남기기
+                    date_default_timezone_set('Asia/Seoul');
+                    $currentDate = date("Ymd");
+                    $currentTime = date("Y-m-d H:i:s");
+
+                    //업그레이드 로그 남기기
+                    $dataJson = json_encode([
+                        "date" => $currentTime,
+                        "dateTime" => $currentTime,
+                        "channel_uid" => "0",
+                        "game" => ScribeService::PROJECT_NAME,
+                        "server_id" => 'KR',
+                        "account_id" => $data->decoded->data->accountCode,
+                        "account_level" => 0,
+                        "character_id" => $userInfo->getUserCode(),
+                        "character_type_id" => 0,
+                        "character_level" => $userInfo->getLevelCode(),
+                        "character_upgrade_id" => $upgradeInfo->getUpgradeCode(),
+                        "character_upgrade_type" => 2,
+                        "character_upgrade_level" => $upgradeInfo->getUpgradeLevel(),
+                        "character_upgrade_price" => $upgradeInfo->getUpgradePrice(),
+                        "app_id" => ScribeService::PROJECT_NAME,
+                        "client_ip" => $_SERVER['REMOTE_ADDR'],
+                        "server_ip" => $_SERVER['SERVER_ADDR'],
+                        "channel" => "C2S",
+                        "company" => "C2S",
+                        "guid" => $_SERVER['GUID']
+                    ]);
+
+                    $msg1[] = new \LogEntry(array(
+                        'category' => 'uruk_game_character_upgrade_log_'.$currentDate,
+                        'message' => $dataJson
+                    ));
+                    $this->scribeService->Log($msg1);
+
+                    //재화 로그 남기기
+                    $dataJson2 = json_encode([
+                        "date" => $currentTime,
+                        "dateTime" => $currentTime,
+                        "channel_uid" => "0",
+                        "game" => ScribeService::PROJECT_NAME,
+                        "server_id" => 'KR',
+                        "account_id" => $data->decoded->data->accountCode,
+                        "account_level" => 0,
+                        "character_id" => $userInfo->getUserCode(),
+                        "character_type_id" => 0,
+                        "character_level" => $userInfo->getLevelCode(),
+                        "character_money_id" => $upgradeInfo->getMoneyCode(),
+                        "character_money_item_id" => $upgradeInfo->getUpgradeCode(),
+                        "character_money_item_type" => 3,
+                        "character_money_type" => 2,
+                        "character_money_price" => $upgradeInfo->getUpgradePrice(),
+                        "app_id" => ScribeService::PROJECT_NAME,
+                        "client_ip" => $_SERVER['REMOTE_ADDR'],
+                        "server_ip" => $_SERVER['SERVER_ADDR'],
+                        "channel" => "C2S",
+                        "company" => "C2S",
+                        "guid" => $_SERVER['GUID']
+                    ]);
+
+                    $msg2[] = new \LogEntry(array(
+                        'category' => 'uruk_game_character_money_log_'.$currentDate,
+                        'message' => $dataJson2
+                    ));
+                    $this->scribeService->Log($msg2);
+
                     return [
                         'moneyCode' => $upgradeInfo->getMoneyCode(),
                         'moneyPrice' => $upgradeInfo->getUpgradePrice(),

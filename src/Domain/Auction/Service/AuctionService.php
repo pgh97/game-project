@@ -10,6 +10,7 @@ use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Common\Service\ScribeService;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Repository\UserRepository;
 use App\Exception\ErrorCode;
@@ -20,6 +21,7 @@ class AuctionService extends BaseService
     protected AuctionRepository $auctionRepository;
     protected UserRepository $userRepository;
     protected CommonRepository $commonRepository;
+    protected ScribeService $scribeService;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
 
@@ -31,12 +33,14 @@ class AuctionService extends BaseService
         ,AuctionRepository $auctionRepository
         ,UserRepository $userRepository
         ,CommonRepository $commonRepository
+        ,ScribeService $scribeService
         ,RedisService $redisService)
     {
         $this->logger = $logger;
         $this->auctionRepository = $auctionRepository;
         $this->userRepository = $userRepository;
         $this->commonRepository = $commonRepository;
+        $this->scribeService = $scribeService;
         $this->redisService = $redisService;
     }
 
@@ -168,6 +172,72 @@ class AuctionService extends BaseService
                     $this->saveInAddRank($data->decoded->data->userCode, $addPrice+$profitPrice,self::USER_REDIS_KEY,self::AUCTION_RANK_PEARL, $currentDay);
                 }
             }
+
+            //scribe 로그 남기기
+            date_default_timezone_set('Asia/Seoul');
+            $currentDate = date("Ymd");
+            $currentTime = date("Y-m-d H:i:s");
+
+            //경매 내역 남기기
+            $dataJson = json_encode([
+                "date" => $currentTime,
+                "dateTime" => $currentTime,
+                "channel_uid" => "0",
+                "game" => ScribeService::PROJECT_NAME,
+                "server_id" => 'KR',
+                "account_id" => $data->decoded->data->accountCode,
+                "account_level" => 0,
+                "character_id" => $userInfo->getUserCode(),
+                "character_type_id" => 0,
+                "character_level" => $userInfo->getLevelCode(),
+                "character_auction_item_id" => $auctionInfo->getFishGradeCode(),
+                "character_auction_price" => $auctionInfo->getAuctionPrice(),
+                "character_auction_profit_price" => $profitPrice,
+                "character_auction_count" => $sellCount,
+                "app_id" => ScribeService::PROJECT_NAME,
+                "client_ip" => $_SERVER['REMOTE_ADDR'],
+                "server_ip" => $_SERVER['SERVER_ADDR'],
+                "channel" => "C2S",
+                "company" => "C2S",
+                "guid" => $_SERVER['GUID']
+            ]);
+
+            $msg1[] = new \LogEntry(array(
+                'category' => 'uruk_game_character_auction_log_'.$currentDate,
+                'message' => $dataJson
+            ));
+            $this->scribeService->Log($msg1);
+
+            //재화 로그 남기기
+            $dataJson2 = json_encode([
+                "date" => $currentTime,
+                "dateTime" => $currentTime,
+                "channel_uid" => "0",
+                "game" => ScribeService::PROJECT_NAME,
+                "server_id" => 'KR',
+                "account_id" => $data->decoded->data->accountCode,
+                "account_level" => 0,
+                "character_id" => $userInfo->getUserCode(),
+                "character_type_id" => 0,
+                "character_level" => $userInfo->getLevelCode(),
+                "character_money_id" => $auctionInfo->getMoneyCode(),
+                "character_money_item_id" => $auctionInfo->getFishGradeCode(),
+                "character_money_item_type" => 1,
+                "character_money_type" => 1,
+                "character_money_price" => $addPrice+$profitPrice,
+                "app_id" => ScribeService::PROJECT_NAME,
+                "client_ip" => $_SERVER['REMOTE_ADDR'],
+                "server_ip" => $_SERVER['SERVER_ADDR'],
+                "channel" => "C2S",
+                "company" => "C2S",
+                "guid" => $_SERVER['GUID']
+            ]);
+
+            $msg2[] = new \LogEntry(array(
+                'category' => 'uruk_game_character_money_log_'.$currentDate,
+                'message' => $dataJson2
+            ));
+            $this->scribeService->Log($msg2);
             return [
                 'auctionProfitPrice' => $profitPrice,
                 'userInfo' => $userInfo,

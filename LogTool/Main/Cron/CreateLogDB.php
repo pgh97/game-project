@@ -124,6 +124,130 @@ foreach ($checkFile->getDirs() as $dir)
                    company varchar(3) not null,
                    guid varchar(64) null
                 )";
+        } elseif (strpos($dir, "uruk_game_character_money_log") !== false){
+            $query = "create table ";
+            $query .= $dir." (
+                   money_log_id bigint not null auto_increment primary key,
+                   date	varchar(50) not null,
+                   dateTime varchar(50) not null,
+                   channel_uid varchar(64) not null,
+                   game varchar(50) not null,
+                   server_id varchar(64) not null,
+                   account_id bigint not null,
+                   account_level int not null,
+                   character_id bigint not null,
+                   character_type_id int not null,
+                   character_level int not null,
+                   character_money_id int not null,
+                   character_money_item_id int not null,
+                   character_money_item_type int not null,
+                   character_money_type int not null,
+                   character_money_price int not null,
+                   app_id varchar(200) not null,
+                   client_ip varchar(32) not null,
+                   server_ip varchar(32) not null,   
+                   channel varchar(3) not null,
+                   company varchar(3) not null,
+                   guid varchar(64) null
+                )";
+        } elseif (strpos($dir, "uruk_game_character_auction_log") !== false){
+            $query = "create table ";
+            $query .= $dir." (
+                   auction_log_id bigint not null auto_increment primary key,
+                   date	varchar(50) not null,
+                   dateTime varchar(50) not null,
+                   channel_uid varchar(64) not null,
+                   game varchar(50) not null,
+                   server_id varchar(64) not null,
+                   account_id bigint not null,
+                   account_level int not null,
+                   character_id bigint not null,
+                   character_type_id int not null,
+                   character_level int not null,
+                   character_auction_item_id int not null,
+                   character_auction_price int not null,
+                   character_auction_profit_price int not null,
+                   character_auction_count int not null,
+                   app_id varchar(200) not null,
+                   client_ip varchar(32) not null,
+                   server_ip varchar(32) not null,   
+                   channel varchar(3) not null,
+                   company varchar(3) not null,
+                   guid varchar(64) null
+                )";
+        } elseif (strpos($dir, "uruk_game_character_fishing_log") !== false){
+            $query = "create table ";
+            $query .= $dir." (
+                   fishing_log_id bigint not null auto_increment primary key,
+                   date	varchar(50) not null,
+                   dateTime varchar(50) not null,
+                   channel_uid varchar(64) not null,
+                   game varchar(50) not null,
+                   server_id varchar(64) not null,
+                   account_id bigint not null,
+                   account_level int not null,
+                   character_id bigint not null,
+                   character_type_id int not null,
+                   character_level int not null,
+                   character_catch_id int not null,
+                   character_catch_type int not null,
+                   app_id varchar(200) not null,
+                   client_ip varchar(32) not null,
+                   server_ip varchar(32) not null,   
+                   channel varchar(3) not null,
+                   company varchar(3) not null,
+                   guid varchar(64) null
+                )";
+        } elseif (strpos($dir, "uruk_game_character_repair_log") !== false){
+            $query = "create table ";
+            $query .= $dir." (
+                   repair_log_id bigint not null auto_increment primary key,
+                   date	varchar(50) not null,
+                   dateTime varchar(50) not null,
+                   channel_uid varchar(64) not null,
+                   game varchar(50) not null,
+                   server_id varchar(64) not null,
+                   account_id bigint not null,
+                   account_level int not null,
+                   character_id bigint not null,
+                   character_type_id int not null,
+                   character_level int not null,
+                   character_repair_id int not null,
+                   character_repair_price int not null,
+                   character_repair_durability int not null,
+                   character_repair_sum int not null,
+                   app_id varchar(200) not null,
+                   client_ip varchar(32) not null,
+                   server_ip varchar(32) not null,   
+                   channel varchar(3) not null,
+                   company varchar(3) not null,
+                   guid varchar(64) null
+                )";
+        } elseif (strpos($dir, "uruk_game_character_upgrade_log") !== false){
+            $query = "create table ";
+            $query .= $dir." (
+                   upgrade_log_id bigint not null auto_increment primary key,
+                   date	varchar(50) not null,
+                   dateTime varchar(50) not null,
+                   channel_uid varchar(64) not null,
+                   game varchar(50) not null,
+                   server_id varchar(64) not null,
+                   account_id bigint not null,
+                   account_level int not null,
+                   character_id bigint not null,
+                   character_type_id int not null,
+                   character_level int not null,
+                   character_upgrade_id int not null,
+                   character_upgrade_level int not null,
+                   character_upgrade_price int not null,
+                   character_upgrade_type int not null,
+                   app_id varchar(200) not null,
+                   client_ip varchar(32) not null,
+                   server_ip varchar(32) not null,   
+                   channel varchar(3) not null,
+                   company varchar(3) not null,
+                   guid varchar(64) null
+                )";
         }
         if(!empty($query)){
             $statement = $conn->prepare($query);

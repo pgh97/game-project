@@ -14,7 +14,7 @@ class GetShopListAction extends ShopAction
     {
         $input = (array) $request->getParsedBody();
         $service = new ShopService($this->logger, $this->shopRepository, $this->userRepository
-            ,$this->commonRepository, $this->redisService);
+            ,$this->commonRepository, $this->scribeService, $this->redisService);
         $payload = $service->getShopInfoList($input);
         $codeArray = $payload['codeArray'];
         unset($payload['codeArray']);

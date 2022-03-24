@@ -5,6 +5,7 @@ namespace App\Application\Actions\Upgrade;
 use App\Application\Actions\Action;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Common\Service\ScribeService;
 use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Upgrade\Repository\UpgradeRepository;
 use App\Domain\User\Repository\UserRepository;
@@ -16,6 +17,7 @@ abstract class UpgradeAction extends Action
     protected UserRepository $userRepository;
     protected FishingRepository $fishingRepository;
     protected CommonRepository $commonRepository;
+    protected ScribeService $scribeService;
     protected RedisService $redisService;
 
     public function __construct(LoggerInterface $logger
@@ -23,6 +25,7 @@ abstract class UpgradeAction extends Action
         ,UserRepository $userRepository
         ,FishingRepository $fishingRepository
         ,CommonRepository $commonRepository
+        ,ScribeService $scribeService
         ,RedisService $redisService)
     {
         parent::__construct($logger);
@@ -30,6 +33,7 @@ abstract class UpgradeAction extends Action
         $this->userRepository = $userRepository;
         $this->fishingRepository = $fishingRepository;
         $this->commonRepository = $commonRepository;
+        $this->scribeService = $scribeService;
         $this->redisService = $redisService;
     }
 }

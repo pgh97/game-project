@@ -7,9 +7,13 @@ use App\Domain\Common\Entity\Ship\ShipInfoData;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Common\Service\ScribeService;
 use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Repair\Entity\ItemRepairInfoData;
 use App\Domain\Repair\Repository\RepairRepository;
+use App\Domain\Upgrade\Entity\FishingItemUpgradeData;
+use App\Domain\Upgrade\Entity\ShipItemUpgradeData;
+use App\Domain\Upgrade\Repository\UpgradeRepository;
 use App\Domain\User\Entity\UserInfo;
 use App\Domain\User\Entity\UserInventoryInfo;
 use App\Domain\User\Entity\UserShipInfo;
@@ -22,7 +26,9 @@ class RepairService extends BaseService
     protected RepairRepository $repairRepository;
     protected UserRepository $userRepository;
     protected FishingRepository $fishingRepository;
+    protected UpgradeRepository $upgradeRepository;
     protected CommonRepository $commonRepository;
+    protected ScribeService $scribeService;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
 
@@ -33,14 +39,18 @@ class RepairService extends BaseService
         ,RepairRepository $repairRepository
         ,UserRepository $userRepository
         ,FishingRepository $fishingRepository
+        ,UpgradeRepository $upgradeRepository
         ,CommonRepository $commonRepository
+        ,ScribeService $scribeService
         ,RedisService $redisService)
     {
         $this->logger = $logger;
         $this->repairRepository = $repairRepository;
         $this->userRepository = $userRepository;
         $this->fishingRepository = $fishingRepository;
+        $this->upgradeRepository = $upgradeRepository;
         $this->commonRepository = $commonRepository;
+        $this->scribeService = $scribeService;
         $this->redisService = $redisService;
     }
     
@@ -64,12 +74,18 @@ class RepairService extends BaseService
             $myShip = new UserShipInfo();
             $myShip->setUserCode($data->decoded->data->userCode);
             $itemInfo = $this->userRepository->getUserShipInfo($myShip);
-            $repairInfo->setItemCode($itemInfo->getShipCode());
+
+            //ship_item_upgrade_data 조회
+            $upgradeInfo = new ShipItemUpgradeData();
+            $upgradeInfo->setUpgradeCode($itemInfo->getUpgradeCode());
+            $upgradeInfo = $this->upgradeRepository->getShipItemUpgradeData($upgradeInfo);
 
             //원본 낚시배 조회
             $originalItem = new ShipInfoData();
             $originalItem->setShipCode($itemInfo->getShipCode());
             $originalItem = $this->commonRepository->getShipInfo($originalItem);
+            $originalItem->setDurability($originalItem->getDurability()+($originalItem->getDurability()*$upgradeInfo->getAddProbability()));
+            $originalItem->setFuel($originalItem->getFuel()+($originalItem->getFuel()*$upgradeInfo->getAddFuel()));
 
             //수리 테이블 조회를 위한 itemCode
             $repairInfo->setItemCode($itemInfo->getShipCode());
@@ -79,6 +95,11 @@ class RepairService extends BaseService
             $myInventory->setInventoryCode($data->itemCode);
             $itemInfo = $this->userRepository->getUserInventory($myInventory);
 
+            //fishing_item_upgrade_data에서 업로드 효과 조회
+            $upgradeInfo = new FishingItemUpgradeData();
+            $upgradeInfo->setUpgradeCode($itemInfo->getUpgradeCode());
+            $upgradeInfo = $this->upgradeRepository->getFishingItemUpgradeData($upgradeInfo);
+
             //원본 등급아이템 조회
             if($data->itemType == 1){
                 $originalItem = $this->fishingRepository->getFishingRodGradeData($itemInfo);
@@ -87,6 +108,8 @@ class RepairService extends BaseService
             } else {
                 $originalItem = $this->fishingRepository->getFishingReelGradeData($itemInfo);
             }
+            $originalItem->setDurability($originalItem->getDurability()
+                +round($originalItem->getDurability()*$upgradeInfo->getAddProbability()/10));
 
             //수리 테이블 조회를 위한 itemCode
             $repairInfo->setItemCode($itemInfo->getItemCode());
@@ -136,6 +159,73 @@ class RepairService extends BaseService
                     $userInfo = $this->userRepository->getUserInfo($userInfo);
                     $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
                 }
+
+                //scribe 로그 남기기
+                date_default_timezone_set('Asia/Seoul');
+                $currentDate = date("Ymd");
+                $currentTime = date("Y-m-d H:i:s");
+
+                //수리 내역 로그 남기기
+                $dataJson = json_encode([
+                    "date" => $currentTime,
+                    "dateTime" => $currentTime,
+                    "channel_uid" => "0",
+                    "game" => ScribeService::PROJECT_NAME,
+                    "server_id" => 'KR',
+                    "account_id" => $data->decoded->data->accountCode,
+                    "account_level" => 0,
+                    "character_id" => $userInfo->getUserCode(),
+                    "character_type_id" => 0,
+                    "character_level" => $userInfo->getLevelCode(),
+                    "character_repair_id" => $repairInfo->getRepairCode(),
+                    "character_repair_price" => $repairInfo->getRepairPrice(),
+                    "character_repair_durability" => $needDurability,
+                    "character_repair_sum" => $needDurability * $repairInfo->getRepairPrice(),
+                    "app_id" => ScribeService::PROJECT_NAME,
+                    "client_ip" => $_SERVER['REMOTE_ADDR'],
+                    "server_ip" => $_SERVER['SERVER_ADDR'],
+                    "channel" => "C2S",
+                    "company" => "C2S",
+                    "guid" => $_SERVER['GUID']
+                ]);
+
+                $msg1[] = new \LogEntry(array(
+                    'category' => 'uruk_game_character_repair_log_'.$currentDate,
+                    'message' => $dataJson
+                ));
+                $this->scribeService->Log($msg1);
+
+                //재화 로그 남기기
+                $dataJson2 = json_encode([
+                    "date" => $currentTime,
+                    "dateTime" => $currentTime,
+                    "channel_uid" => "0",
+                    "game" => ScribeService::PROJECT_NAME,
+                    "server_id" => 'KR',
+                    "account_id" => $data->decoded->data->accountCode,
+                    "account_level" => 0,
+                    "character_id" => $userInfo->getUserCode(),
+                    "character_type_id" => 0,
+                    "character_level" => $userInfo->getLevelCode(),
+                    "character_money_id" => $repairInfo->getMoneyCode(),
+                    "character_money_item_id" => $repairInfo->getRepairCode(),
+                    "character_money_item_type" => 4,
+                    "character_money_type" => 2,
+                    "character_money_price" => $needDurability * $repairInfo->getRepairPrice(),
+                    "app_id" => ScribeService::PROJECT_NAME,
+                    "client_ip" => $_SERVER['REMOTE_ADDR'],
+                    "server_ip" => $_SERVER['SERVER_ADDR'],
+                    "channel" => "C2S",
+                    "company" => "C2S",
+                    "guid" => $_SERVER['GUID']
+                ]);
+
+                $msg2[] = new \LogEntry(array(
+                    'category' => 'uruk_game_character_money_log_'.$currentDate,
+                    'message' => $dataJson2
+                ));
+                $this->scribeService->Log($msg2);
+
                 return [
                     'moneyCode' => $repairInfo->getMoneyCode(),
                     'moneyPrice' => $needDurability * $repairInfo->getRepairPrice(),
@@ -184,6 +274,73 @@ class RepairService extends BaseService
                     $userInfo = $this->userRepository->getUserInfo($userInfo);
                     $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
                 }
+
+                //scribe 로그 남기기
+                date_default_timezone_set('Asia/Seoul');
+                $currentDate = date("Ymd");
+                $currentTime = date("Y-m-d H:i:s");
+
+                //수리 내역 로그 남기기
+                $dataJson = json_encode([
+                    "date" => $currentTime,
+                    "dateTime" => $currentTime,
+                    "channel_uid" => "0",
+                    "game" => ScribeService::PROJECT_NAME,
+                    "server_id" => 'KR',
+                    "account_id" => $data->decoded->data->accountCode,
+                    "account_level" => 0,
+                    "character_id" => $userInfo->getUserCode(),
+                    "character_type_id" => 0,
+                    "character_level" => $userInfo->getLevelCode(),
+                    "character_repair_id" => 0,
+                    "character_repair_price" => 10,
+                    "character_repair_durability" => $fatigue,
+                    "character_repair_sum" => $fatigue * 10,
+                    "app_id" => ScribeService::PROJECT_NAME,
+                    "client_ip" => $_SERVER['REMOTE_ADDR'],
+                    "server_ip" => $_SERVER['SERVER_ADDR'],
+                    "channel" => "C2S",
+                    "company" => "C2S",
+                    "guid" => $_SERVER['GUID']
+                ]);
+
+                $msg1[] = new \LogEntry(array(
+                    'category' => 'uruk_game_character_repair_log_'.$currentDate,
+                    'message' => $dataJson
+                ));
+                $this->scribeService->Log($msg1);
+
+                //재화 로그 남기기
+                $dataJson2 = json_encode([
+                    "date" => $currentTime,
+                    "dateTime" => $currentTime,
+                    "channel_uid" => "0",
+                    "game" => ScribeService::PROJECT_NAME,
+                    "server_id" => 'KR',
+                    "account_id" => $data->decoded->data->accountCode,
+                    "account_level" => 0,
+                    "character_id" => $userInfo->getUserCode(),
+                    "character_type_id" => 0,
+                    "character_level" => $userInfo->getLevelCode(),
+                    "character_money_id" => 1,
+                    "character_money_item_id" => 0,
+                    "character_money_item_type" => 4,
+                    "character_money_type" => 2,
+                    "character_money_price" => $fatigue * 10,
+                    "app_id" => ScribeService::PROJECT_NAME,
+                    "client_ip" => $_SERVER['REMOTE_ADDR'],
+                    "server_ip" => $_SERVER['SERVER_ADDR'],
+                    "channel" => "C2S",
+                    "company" => "C2S",
+                    "guid" => $_SERVER['GUID']
+                ]);
+
+                $msg2[] = new \LogEntry(array(
+                    'category' => 'uruk_game_character_money_log_'.$currentDate,
+                    'message' => $dataJson2
+                ));
+                $this->scribeService->Log($msg2);
+
                 return [
                     'moneyCode' => 1,
                     'moneyPrice' => $fatigue * 10,

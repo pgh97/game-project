@@ -14,7 +14,7 @@ class ModifyUpgradeFishingItemActon extends UpgradeAction
     {
         $input = (array) $request->getParsedBody();
         $service = new UpgradeService($this->logger, $this->upgradeRepository, $this->userRepository, $this->fishingRepository
-            ,$this->commonRepository, $this->redisService);
+            ,$this->commonRepository, $this->scribeService, $this->redisService);
         $payload = $service->modifyUpgradeFishingItem($input);
         $codeArray = $payload['codeArray'];
         unset($payload['codeArray']);

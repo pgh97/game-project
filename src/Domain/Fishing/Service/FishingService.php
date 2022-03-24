@@ -10,6 +10,7 @@ use App\Domain\Common\Entity\Weather\WeatherInfoData;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Common\Service\ScribeService;
 use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Map\Entity\MapInfoData;
 use App\Domain\Map\Entity\MapItemData;
@@ -38,6 +39,7 @@ class FishingService extends BaseService
     protected QuestRepository $questRepository;
     protected UpgradeRepository $upgradeRepository;
     protected CommonRepository $commonRepository;
+    protected ScribeService $scribeService;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
 
@@ -54,6 +56,7 @@ class FishingService extends BaseService
         ,QuestRepository $questRepository
         ,UpgradeRepository $upgradeRepository
         ,CommonRepository $commonRepository
+        ,ScribeService $scribeService
         ,RedisService $redisService)
     {
         $this->logger = $logger;
@@ -63,6 +66,7 @@ class FishingService extends BaseService
         $this->questRepository = $questRepository;
         $this->upgradeRepository = $upgradeRepository;
         $this->commonRepository = $commonRepository;
+        $this->scribeService = $scribeService;
         $this->redisService = $redisService;
     }
 
@@ -535,6 +539,8 @@ class FishingService extends BaseService
                             $message = "레벨 ".$userInfo->getLevelCode()."로 레벨업했습니다!";
                         }
                         $itemInfo = $fishGradeInfo;
+                        $logItemCode = $fishGradeInfo->getFishGradeCode();
+                        $logItemType = 8;
                     }else{ //부품일 경우
                         $itemArray = array();
                         $percentArray = array();
@@ -592,6 +598,8 @@ class FishingService extends BaseService
                         }
                         $myInventory->setInventoryCode($userInventoryCode);
                         $itemInfo = $this->userRepository->getUserInventory($myInventory);
+                        $logItemCode = $itemInfo->getItemCode();
+                        $logItemType = $itemInfo->getItemType();
                     }
 
                     $this->userRepository->modifyUserLevel($userInfo);
@@ -599,6 +607,39 @@ class FishingService extends BaseService
                         $user = $this->userRepository->getUserInfo($userInfo);
                         $this->saveInCache($userInfo->getUserCode(), $user, self::USER_REDIS_KEY);
                     }
+                    //scribe 로그 남기기
+                    date_default_timezone_set('Asia/Seoul');
+                    $currentDate = date("Ymd");
+                    $currentTime = date("Y-m-d H:i:s");
+
+                    //낚시 내역 로그 남기기
+                    $dataJson = json_encode([
+                        "date" => $currentTime,
+                        "dateTime" => $currentTime,
+                        "channel_uid" => "0",
+                        "game" => ScribeService::PROJECT_NAME,
+                        "server_id" => 'KR',
+                        "account_id" => $data->decoded->data->accountCode,
+                        "account_level" => 0,
+                        "character_id" => $userInfo->getUserCode(),
+                        "character_type_id" => 0,
+                        "character_level" => $userInfo->getLevelCode(),
+                        "character_catch_id" => $logItemCode,
+                        "character_catch_type" => $logItemType,
+                        "app_id" => ScribeService::PROJECT_NAME,
+                        "client_ip" => $_SERVER['REMOTE_ADDR'],
+                        "server_ip" => $_SERVER['SERVER_ADDR'],
+                        "channel" => "C2S",
+                        "company" => "C2S",
+                        "guid" => $_SERVER['GUID']
+                    ]);
+
+                    $msg1[] = new \LogEntry(array(
+                        'category' => 'uruk_game_character_fishing_log_'.$currentDate,
+                        'message' => $dataJson
+                    ));
+                    $this->scribeService->Log($msg1);
+
                     $this->logger->info("fishing operate service");
                     if(!empty($message)){
                         return [

@@ -5,6 +5,7 @@ namespace App\Application\Actions\Fishing;
 use App\Application\Actions\Action;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Common\Service\ScribeService;
 use App\Domain\Fishing\Repository\FishingRepository;
 use App\Domain\Map\Repository\MapRepository;
 use App\Domain\Quest\Repository\QuestRepository;
@@ -20,6 +21,7 @@ abstract class FishingAction extends Action
     protected QuestRepository $questRepository;
     protected UpgradeRepository $upgradeRepository;
     protected CommonRepository $commonRepository;
+    protected ScribeService $scribeService;
     protected RedisService $redisService;
 
     public function __construct(LoggerInterface $logger
@@ -29,6 +31,7 @@ abstract class FishingAction extends Action
         ,QuestRepository $questRepository
         ,UpgradeRepository $upgradeRepository
         ,CommonRepository $commonRepository
+        ,ScribeService $scribeService
         ,RedisService $redisService)
     {
         parent::__construct($logger);
@@ -38,6 +41,7 @@ abstract class FishingAction extends Action
         $this->questRepository = $questRepository;
         $this->upgradeRepository = $upgradeRepository;
         $this->commonRepository = $commonRepository;
+        $this->scribeService = $scribeService;
         $this->redisService = $redisService;
     }
 }

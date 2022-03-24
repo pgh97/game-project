@@ -9,15 +9,22 @@ $checkFile = new CheckFileUtil();
 $db = new DatabaseConfig();
 
 $checkFile->listFolderFiles("/game/log/scribe/default_primary");
-//print_r($checkFile->getDirs());
+//print_r($checkFile->getFiles());
 
 foreach ($checkFile->getFiles() as $fileNm){
-    if ($file = fopen($fileNm, "r")) {
-        while(!feof($file)) {
-            $line = fgets($file);
-            $ob = json_decode($line);
-            var_dump($ob->date);
+    $query = "";
+    if (strpos($fileNm, "new_user_log") !== false){
+        if ($file = fopen($fileNm, "r")) {
+            //echo $fileNm;
+            while(($line = fgets($file)) !== false) {
+                $json = json_decode($line);
+                //echo $line;
+                $query .= "('".$json->date."', '".$json->last_login_date."', '".$json->channel."', ".$json->user_id.", '".
+                    $json->app_id."', '".$json->client_ip."', '".$json->server_ip."', '".$json->guid."'), ";
+            }
+            fclose($file);
         }
-        fclose($file);
+        $query = rtrim($query, ', ');
+        echo $query;
     }
 }

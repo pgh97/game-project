@@ -6,6 +6,7 @@ use App\Domain\Common\Entity\SearchInfo;
 use App\Domain\Common\Repository\CommonRepository;
 use App\Domain\Common\Service\BaseService;
 use App\Domain\Common\Service\RedisService;
+use App\Domain\Common\Service\ScribeService;
 use App\Domain\Shop\Entity\ShopInfoData;
 use App\Domain\Shop\Repository\ShopRepository;
 use App\Domain\User\Entity\UserGitfBoxInfo;
@@ -20,6 +21,7 @@ class ShopService extends BaseService
     protected ShopRepository $shopRepository;
     protected UserRepository $userRepository;
     protected CommonRepository $commonRepository;
+    protected ScribeService $scribeService;
     protected RedisService $redisService;
     protected LoggerInterface $logger;
 
@@ -30,12 +32,14 @@ class ShopService extends BaseService
         ,ShopRepository $shopRepository
         ,UserRepository $userRepository
         ,CommonRepository $commonRepository
+        ,ScribeService $scribeService
         ,RedisService $redisService)
     {
         $this->logger = $logger;
         $this->shopRepository = $shopRepository;
         $this->userRepository = $userRepository;
         $this->commonRepository = $commonRepository;
+        $this->scribeService = $scribeService;
         $this->redisService = $redisService;
     }
 
@@ -122,6 +126,73 @@ class ShopService extends BaseService
                 $userInfo = $this->userRepository->getUserInfo($userInfo);
                 $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
             }
+
+            //scribe 로그 남기기
+            date_default_timezone_set('Asia/Seoul');
+            $currentDate = date("Ymd");
+            $currentTime = date("Y-m-d H:i:s");
+
+            //상품 판매 내역 로그 남기기
+            $dataJson = json_encode([
+                "date" => $currentTime,
+                "dateTime" => $currentTime,
+                "channel_uid" => "0",
+                "game" => ScribeService::PROJECT_NAME,
+                "server_id" => 'KR',
+                "account_id" => $data->decoded->data->accountCode,
+                "account_level" => 0,
+                "character_id" => $userInfo->getUserCode(),
+                "character_type_id" => 0,
+                "character_level" => $userInfo->getLevelCode(),
+                "character_shop_id" => $shopInfo->getShopCode(),
+                "character_shop_count" => $sellCount,
+                "character_shop_price" => $shopInfo->getItemPrice(),
+                "character_shop_price_sum" => $sellCount * $shopInfo->getItemPrice(),
+                "app_id" => ScribeService::PROJECT_NAME,
+                "client_ip" => $_SERVER['REMOTE_ADDR'],
+                "server_ip" => $_SERVER['SERVER_ADDR'],
+                "channel" => "C2S",
+                "company" => "C2S",
+                "guid" => $_SERVER['GUID']
+            ]);
+
+            $msg1[] = new \LogEntry(array(
+                'category' => 'uruk_game_character_shop_sell_log_'.$currentDate,
+                'message' => $dataJson
+            ));
+            $this->scribeService->Log($msg1);
+
+            //재화 로그 남기기
+            $dataJson2 = json_encode([
+                "date" => $currentTime,
+                "dateTime" => $currentTime,
+                "channel_uid" => "0",
+                "game" => ScribeService::PROJECT_NAME,
+                "server_id" => 'KR',
+                "account_id" => $data->decoded->data->accountCode,
+                "account_level" => 0,
+                "character_id" => $userInfo->getUserCode(),
+                "character_type_id" => 0,
+                "character_level" => $userInfo->getLevelCode(),
+                "character_money_id" => $shopInfo->getMoneyCode(),
+                "character_money_item_id" => $shopInfo->getShopCode(),
+                "character_money_item_type" => 5,
+                "character_money_type" => 1,
+                "character_money_price" => $sellCount * $shopInfo->getItemPrice(),
+                "app_id" => ScribeService::PROJECT_NAME,
+                "client_ip" => $_SERVER['REMOTE_ADDR'],
+                "server_ip" => $_SERVER['SERVER_ADDR'],
+                "channel" => "C2S",
+                "company" => "C2S",
+                "guid" => $_SERVER['GUID']
+            ]);
+
+            $msg2[] = new \LogEntry(array(
+                'category' => 'uruk_game_character_money_log_'.$currentDate,
+                'message' => $dataJson2
+            ));
+            $this->scribeService->Log($msg2);
+
             return [
                 'moneyCode' => $shopInfo->getMoneyCode(),
                 'moneyPrice' => $sellCount * $shopInfo->getItemPrice(),
@@ -182,6 +253,73 @@ class ShopService extends BaseService
                     $userInfo = $this->userRepository->getUserInfo($userInfo);
                     $this->saveInCache($data->decoded->data->userCode, $userInfo, self::USER_REDIS_KEY);
                 }
+
+                //scribe 로그 남기기
+                date_default_timezone_set('Asia/Seoul');
+                $currentDate = date("Ymd");
+                $currentTime = date("Y-m-d H:i:s");
+
+                //상품 구매 내역 로그 남기기
+                $dataJson = json_encode([
+                    "date" => $currentTime,
+                    "dateTime" => $currentTime,
+                    "channel_uid" => "0",
+                    "game" => ScribeService::PROJECT_NAME,
+                    "server_id" => 'KR',
+                    "account_id" => $data->decoded->data->accountCode,
+                    "account_level" => 0,
+                    "character_id" => $userInfo->getUserCode(),
+                    "character_type_id" => 0,
+                    "character_level" => $userInfo->getLevelCode(),
+                    "character_shop_id" => $shopInfo->getShopCode(),
+                    "character_shop_count" => $buyCount,
+                    "character_shop_price" => $shopInfo->getItemPrice(),
+                    "character_shop_price_sum" => $buyCount * $shopInfo->getItemPrice(),
+                    "app_id" => ScribeService::PROJECT_NAME,
+                    "client_ip" => $_SERVER['REMOTE_ADDR'],
+                    "server_ip" => $_SERVER['SERVER_ADDR'],
+                    "channel" => "C2S",
+                    "company" => "C2S",
+                    "guid" => $_SERVER['GUID']
+                ]);
+
+                $msg1[] = new \LogEntry(array(
+                    'category' => 'uruk_game_character_shop_buy_log_'.$currentDate,
+                    'message' => $dataJson
+                ));
+                $this->scribeService->Log($msg1);
+
+                //재화 로그 남기기
+                $dataJson2 = json_encode([
+                    "date" => $currentTime,
+                    "dateTime" => $currentTime,
+                    "channel_uid" => "0",
+                    "game" => ScribeService::PROJECT_NAME,
+                    "server_id" => 'KR',
+                    "account_id" => $data->decoded->data->accountCode,
+                    "account_level" => 0,
+                    "character_id" => $userInfo->getUserCode(),
+                    "character_type_id" => 0,
+                    "character_level" => $userInfo->getLevelCode(),
+                    "character_money_id" => $shopInfo->getMoneyCode(),
+                    "character_money_item_id" => $shopInfo->getShopCode(),
+                    "character_money_item_type" => 5,
+                    "character_money_type" => 2,
+                    "character_money_price" => $buyCount * $shopInfo->getItemPrice(),
+                    "app_id" => ScribeService::PROJECT_NAME,
+                    "client_ip" => $_SERVER['REMOTE_ADDR'],
+                    "server_ip" => $_SERVER['SERVER_ADDR'],
+                    "channel" => "C2S",
+                    "company" => "C2S",
+                    "guid" => $_SERVER['GUID']
+                ]);
+
+                $msg2[] = new \LogEntry(array(
+                    'category' => 'uruk_game_character_money_log_'.$currentDate,
+                    'message' => $dataJson2
+                ));
+                $this->scribeService->Log($msg2);
+
                 return [
                     'moneyCode' => $shopInfo->getMoneyCode(),
                     'moneyPrice' => $buyCount * $shopInfo->getItemPrice(),
