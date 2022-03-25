@@ -72,15 +72,11 @@ class CheckFileUtil
 
         foreach($ffs as $ff){
             if(is_dir($dir.'/'.$ff)){
-                if(strpos($ff, $this->getYesterday()) !== false ){
-                    $this->addDirs($ff);
-                }
+                $this->addDirs($ff."_".$this->getYesterday());
                 $this->listFolderFiles($dir.'/'.$ff);
             }else{
                 if(strpos($ff, "current") == false ){
-                    if(strpos($ff, $this->getYesterday()) !== false ){
-                        $this->addFiles($dir.'/'.$ff);
-                    }
+                    $this->addFiles($dir.'/'.$ff);
                 }
             }
         }

@@ -127,7 +127,6 @@ class UserService extends BaseService
             }
             //scribe 로그 남기기
             date_default_timezone_set('Asia/Seoul');
-            $currentDate = date("Ymd");
             $currentTime = date("Y-m-d H:i:s");
 
             $dataJson = json_encode([
@@ -150,7 +149,7 @@ class UserService extends BaseService
             ]);
 
             $msg[] = new \LogEntry(array(
-                'category' => 'uruk_game_character_creation_log_'.$currentDate,
+                'category' => 'uruk_game_character_creation_log',
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg);
@@ -302,7 +301,6 @@ class UserService extends BaseService
 
             //scribe 로그 남기기
             date_default_timezone_set('Asia/Seoul');
-            $currentDate = date("Ymd");
             $currentTime = date("Y-m-d H:i:s");
 
             $dataJson = json_encode([
@@ -325,7 +323,7 @@ class UserService extends BaseService
             ]);
 
             $msg[] = new \LogEntry(array(
-                'category' => 'uruk_game_character_login_log_'.$currentDate,
+                'category' => 'uruk_game_character_login_log',
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg);
@@ -534,7 +532,6 @@ class UserService extends BaseService
             }
             //scribe 로그 남기기
             date_default_timezone_set('Asia/Seoul');
-            $currentDate = date("Ymd");
             $currentTime = date("Y-m-d H:i:s");
 
             $dataJson = json_encode([
@@ -557,7 +554,7 @@ class UserService extends BaseService
             ]);
 
             $msg[] = new \LogEntry(array(
-                'category' => 'uruk_game_character_delete_log_'.$currentDate,
+                'category' => 'uruk_game_character_delete_log',
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg);

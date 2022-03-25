@@ -32,7 +32,9 @@ foreach ($checkFile->getDirs() as $dir)
                app_id varchar(200) not null,
                client_ip varchar(32) not null,
                server_ip varchar(32) not null,
-               guid varchar(64) null
+               guid varchar(64) null,
+               create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+               UNIQUE KEY date_user_id (date, user_id)
             )";
         } elseif (strpos($dir, "login_log_") !== false){
             $query = "create table ";
@@ -54,7 +56,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
             } else {
                 $query .= $dir." (
@@ -67,7 +71,9 @@ foreach ($checkFile->getDirs() as $dir)
                    client_ip varchar(32) not null,
                    server_ip varchar(32) not null,
                    level int not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_user_id (date, user_id)
                 )";
             }
         } elseif (strpos($dir, "withdraw_log") !== false){
@@ -80,7 +86,9 @@ foreach ($checkFile->getDirs() as $dir)
                    app_id varchar(200) not null,
                    client_ip varchar(32) not null,
                    server_ip varchar(32) not null,
-                   level int not null
+                   level int not null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_user_id (date, user_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_creation") !== false){
             $query = "create table ";
@@ -101,7 +109,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_delete") !== false){
             $query = "create table ";
@@ -122,7 +132,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_money_log") !== false){
             $query = "create table ";
@@ -148,7 +160,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_auction_log") !== false){
             $query = "create table ";
@@ -173,7 +187,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_fishing_log") !== false){
             $query = "create table ";
@@ -196,7 +212,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_repair_log") !== false){
             $query = "create table ";
@@ -221,7 +239,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_upgrade_log") !== false){
             $query = "create table ";
@@ -246,7 +266,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_shop_buy_log") !== false){
             $query = "create table ";
@@ -271,7 +293,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         } elseif (strpos($dir, "uruk_game_character_shop_sell_log") !== false){
             $query = "create table ";
@@ -296,7 +320,9 @@ foreach ($checkFile->getDirs() as $dir)
                    server_ip varchar(32) not null,   
                    channel varchar(3) not null,
                    company varchar(3) not null,
-                   guid varchar(64) null
+                   guid varchar(64) null,
+                   create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
+                   UNIQUE KEY date_account_id (date, account_id)
                 )";
         }
         if(!empty($query)){

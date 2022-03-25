@@ -9,6 +9,7 @@ $app = AppFactory::create();
 
 $app->get('/', function (Request $request, Response $response, $args) {
     $response->getBody()->write("root Hello world!");
+    phpinfo();
     return $response;
 });
 

@@ -129,7 +129,6 @@ class ShopService extends BaseService
 
             //scribe 로그 남기기
             date_default_timezone_set('Asia/Seoul');
-            $currentDate = date("Ymd");
             $currentTime = date("Y-m-d H:i:s");
 
             //상품 판매 내역 로그 남기기
@@ -157,7 +156,7 @@ class ShopService extends BaseService
             ]);
 
             $msg1[] = new \LogEntry(array(
-                'category' => 'uruk_game_character_shop_sell_log_'.$currentDate,
+                'category' => 'uruk_game_character_shop_sell_log',
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg1);
@@ -188,7 +187,7 @@ class ShopService extends BaseService
             ]);
 
             $msg2[] = new \LogEntry(array(
-                'category' => 'uruk_game_character_money_log_'.$currentDate,
+                'category' => 'uruk_game_character_money_log',
                 'message' => $dataJson2
             ));
             $this->scribeService->Log($msg2);
@@ -284,7 +283,7 @@ class ShopService extends BaseService
                 ]);
 
                 $msg1[] = new \LogEntry(array(
-                    'category' => 'uruk_game_character_shop_buy_log_'.$currentDate,
+                    'category' => 'uruk_game_character_shop_buy_log',
                     'message' => $dataJson
                 ));
                 $this->scribeService->Log($msg1);
@@ -315,7 +314,7 @@ class ShopService extends BaseService
                 ]);
 
                 $msg2[] = new \LogEntry(array(
-                    'category' => 'uruk_game_character_money_log_'.$currentDate,
+                    'category' => 'uruk_game_character_money_log',
                     'message' => $dataJson2
                 ));
                 $this->scribeService->Log($msg2);

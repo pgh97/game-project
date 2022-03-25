@@ -175,7 +175,6 @@ class AuctionService extends BaseService
 
             //scribe 로그 남기기
             date_default_timezone_set('Asia/Seoul');
-            $currentDate = date("Ymd");
             $currentTime = date("Y-m-d H:i:s");
 
             //경매 내역 남기기
@@ -203,7 +202,7 @@ class AuctionService extends BaseService
             ]);
 
             $msg1[] = new \LogEntry(array(
-                'category' => 'uruk_game_character_auction_log_'.$currentDate,
+                'category' => 'uruk_game_character_auction_log',
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg1);
@@ -234,7 +233,7 @@ class AuctionService extends BaseService
             ]);
 
             $msg2[] = new \LogEntry(array(
-                'category' => 'uruk_game_character_money_log_'.$currentDate,
+                'category' => 'uruk_game_character_money_log',
                 'message' => $dataJson2
             ));
             $this->scribeService->Log($msg2);

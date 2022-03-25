@@ -609,7 +609,6 @@ class FishingService extends BaseService
                     }
                     //scribe 로그 남기기
                     date_default_timezone_set('Asia/Seoul');
-                    $currentDate = date("Ymd");
                     $currentTime = date("Y-m-d H:i:s");
 
                     //낚시 내역 로그 남기기
@@ -635,7 +634,7 @@ class FishingService extends BaseService
                     ]);
 
                     $msg1[] = new \LogEntry(array(
-                        'category' => 'uruk_game_character_fishing_log_'.$currentDate,
+                        'category' => 'uruk_game_character_fishing_log',
                         'message' => $dataJson
                     ));
                     $this->scribeService->Log($msg1);

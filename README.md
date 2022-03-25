@@ -37,6 +37,8 @@
       * LogTool은 일별로 로그 DB 생성하여 데이터 저장하는 방식
 ---
 ### 현재 진행상황 (2022-03-25)
-* scribe log 읽어서 DB 저장시킬 Tool 개발 완료 (LogTool 폴더 참고)
 * LogTool 빠뜨린 부분 추가
+* scribe log 읽어서 DB 저장시킬 Tool 개발 수정 완료 (LogTool 폴더 참고)
+* log 파일에 날짜값 넣지 않기, 테이블 생성시 날짜값은 넣어도 괜찮음.
 * 전체적인 코드 완성도 높이는 작업 진행 중
+* memcached 테스트 진행

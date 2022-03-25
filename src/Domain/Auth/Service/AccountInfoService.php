@@ -58,7 +58,6 @@ class AccountInfoService
                 $accountInfo = $this->accountInfoRepository->getAccountInfo($myAccountInfo);
                 //scribe 로그 남기기
                 date_default_timezone_set('Asia/Seoul');
-                $currentDate = date("Ymd");
                 $currentTime = date("Y-m-d H:i:s");
 
                 $dataJson = json_encode([
@@ -73,7 +72,7 @@ class AccountInfoService
                 ]);
 
                 $msg[] = new \LogEntry(array(
-                    'category' => 'new_user_log_'.$currentDate,
+                    'category' => 'new_user_log',
                     'message' => $dataJson
                 ));
                 $this->scribeService->Log($msg);
@@ -129,7 +128,6 @@ class AccountInfoService
             $this->logger->info("success login account service ");
             //scribe 로그 남기기
             date_default_timezone_set('Asia/Seoul');
-            $currentDate = date("Ymd");
             $currentTime = date("Y-m-d H:i:s");
             $levelCode = $this->accountInfoRepository->getUserInfoMaxLevel($accountInfo);
 
@@ -146,7 +144,7 @@ class AccountInfoService
             ]);
 
             $msg[] = new \LogEntry(array(
-                'category' => 'login_log_'.$currentDate,
+                'category' => 'login_log',
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg);
@@ -244,7 +242,6 @@ class AccountInfoService
             $levelCode = $this->accountInfoRepository->getUserInfoMaxLevel($myAccountInfo);
             //scribe 로그 남기기
             date_default_timezone_set('Asia/Seoul');
-            $currentDate = date("Ymd");
             $currentTime = date("Y-m-d H:i:s");
 
             $dataJson = json_encode([
@@ -258,7 +255,7 @@ class AccountInfoService
             ]);
 
             $msg[] = new \LogEntry(array(
-                'category' => 'withdraw_log_'.$currentDate,
+                'category' => 'withdraw_log',
                 'message' => $dataJson
             ));
             $this->scribeService->Log($msg);
