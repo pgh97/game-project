@@ -248,6 +248,56 @@ foreach ($checkFile->getDirs() as $dir)
                    company varchar(3) not null,
                    guid varchar(64) null
                 )";
+        } elseif (strpos($dir, "uruk_game_character_shop_buy_log") !== false){
+            $query = "create table ";
+            $query .= $dir." (
+                   buy_log_id bigint not null auto_increment primary key,
+                   date	varchar(50) not null,
+                   dateTime varchar(50) not null,
+                   channel_uid varchar(64) not null,
+                   game varchar(50) not null,
+                   server_id varchar(64) not null,
+                   account_id bigint not null,
+                   account_level int not null,
+                   character_id bigint not null,
+                   character_type_id int not null,
+                   character_level int not null,
+                   character_shop_id int not null,
+                   character_shop_count int not null,
+                   character_shop_price int not null,
+                   character_shop_price_sum int not null,
+                   app_id varchar(200) not null,
+                   client_ip varchar(32) not null,
+                   server_ip varchar(32) not null,   
+                   channel varchar(3) not null,
+                   company varchar(3) not null,
+                   guid varchar(64) null
+                )";
+        } elseif (strpos($dir, "uruk_game_character_shop_sell_log") !== false){
+            $query = "create table ";
+            $query .= $dir." (
+                   sell_log_id bigint not null auto_increment primary key,
+                   date	varchar(50) not null,
+                   dateTime varchar(50) not null,
+                   channel_uid varchar(64) not null,
+                   game varchar(50) not null,
+                   server_id varchar(64) not null,
+                   account_id bigint not null,
+                   account_level int not null,
+                   character_id bigint not null,
+                   character_type_id int not null,
+                   character_level int not null,
+                   character_shop_id int not null,
+                   character_shop_count int not null,
+                   character_shop_price int not null,
+                   character_shop_price_sum int not null,
+                   app_id varchar(200) not null,
+                   client_ip varchar(32) not null,
+                   server_ip varchar(32) not null,   
+                   channel varchar(3) not null,
+                   company varchar(3) not null,
+                   guid varchar(64) null
+                )";
         }
         if(!empty($query)){
             $statement = $conn->prepare($query);

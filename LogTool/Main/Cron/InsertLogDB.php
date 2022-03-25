@@ -107,6 +107,27 @@ foreach ($checkFile->getFiles() as $fileNm)
                 }
                 fclose($file);
             }
+        } elseif (strpos($fileNm, "shop_") !== false){
+            if (strpos($fileNm, "buy_log") !== false){
+                $query = "INSERT INTO uruk_game_character_shop_buy_log_".$checkFile->getYesterday();
+            } else {
+                $query = "INSERT INTO uruk_game_character_shop_sell_log_".$checkFile->getYesterday();
+            }
+            $query .= " (date, dateTime, channel_uid, game, server_id, account_id, account_level, character_id
+                , character_type_id, character_level, character_shop_id, character_shop_count, character_shop_price
+                , character_shop_price_sum, app_id, client_ip, server_ip, channel, company, guid)  
+                VALUES ";
+            if ($file = fopen($fileNm, "r")) {
+                while(($line = fgets($file)) !== false) {
+                    $json = json_decode($line);
+                    $query .= "('".$json->date."', '".$json->dateTime."', '".$json->channel_uid."', '".$json->game."', '".
+                        $json->server_id."', ".$json->account_id.", ".$json->account_level.", ".$json->character_id.", ".
+                        $json->character_type_id.", ".$json->character_level.", ".$json->character_shop_id.", ".$json->character_shop_count.
+                        ", ".$json->character_shop_price.", ".$json->character_shop_price_sum.", '".$json->app_id."', '".$json->client_ip."', '".
+                        $json->server_ip."', '".$json->channel."', '".$json->company."', '".$json->guid."'), ";
+                }
+                fclose($file);
+            }
         } else {
             if (strpos($fileNm, "creation_log_") !== false){
                 $query = "INSERT INTO uruk_game_character_creation_log_".$checkFile->getYesterday()." 
