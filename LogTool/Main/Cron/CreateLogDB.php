@@ -16,12 +16,14 @@ $logger = new LoggerConfig();
 
 foreach ($checkFile->getDirs() as $dir)
 {
+    //테이블이 존재하는지 확인
     $query = "SHOW TABLES LIKE '".$dir."'";
     $statement = $conn->prepare($query);
     $statement->execute();
+    //일별 테이블 생성
     if ($statement->rowCount() == 0){
         $query = "";
-        if (strpos($dir, "new_user_log") !== false){
+        if (strpos($dir, "new_user_log") !== false){    //신규회원 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                new_user_log_id bigint not null auto_increment primary key,
@@ -36,9 +38,9 @@ foreach ($checkFile->getDirs() as $dir)
                create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                UNIQUE KEY date_user_id (date, user_id)
             )";
-        } elseif (strpos($dir, "login_log_") !== false){
+        } elseif (strpos($dir, "login_log_") !== false){  
             $query = "create table ";
-            if (strpos($dir, "uruk_game_character_") !== false){
+            if (strpos($dir, "uruk_game_character_") !== false){    //캐릭터 로그인 로그 테이블
                 $query .= $dir." (
                    character_login_log_id bigint not null auto_increment primary key,
                    date	varchar(50) not null,
@@ -60,7 +62,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-            } else {
+            } else {    //회원 로그인 로그 테이블
                 $query .= $dir." (
                    login_log_id bigint not null auto_increment primary key,
                    date	varchar(50) not null,
@@ -76,7 +78,7 @@ foreach ($checkFile->getDirs() as $dir)
                    UNIQUE KEY date_user_id (date, user_id)
                 )";
             }
-        } elseif (strpos($dir, "withdraw_log") !== false){
+        } elseif (strpos($dir, "withdraw_log") !== false){  //회원 탈퇴 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    withdraw_log_id bigint not null auto_increment primary key,
@@ -90,7 +92,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_user_id (date, user_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_creation") !== false){
+        } elseif (strpos($dir, "uruk_game_character_creation") !== false){  //캐릭터 등록 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    creation_log_id bigint not null auto_increment primary key,
@@ -113,7 +115,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_delete") !== false){
+        } elseif (strpos($dir, "uruk_game_character_delete") !== false){    //캐릭터 삭제 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    delete_log_id bigint not null auto_increment primary key,
@@ -136,7 +138,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_money_log") !== false){
+        } elseif (strpos($dir, "uruk_game_character_money_log") !== false){    //캐릭터 재롸 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    money_log_id bigint not null auto_increment primary key,
@@ -164,7 +166,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_auction_log") !== false){
+        } elseif (strpos($dir, "uruk_game_character_auction_log") !== false){   //캐릭터 경매 내역 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    auction_log_id bigint not null auto_increment primary key,
@@ -191,7 +193,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_fishing_log") !== false){
+        } elseif (strpos($dir, "uruk_game_character_fishing_log") !== false){   //물고기 획득 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    fishing_log_id bigint not null auto_increment primary key,
@@ -216,7 +218,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_repair_log") !== false){
+        } elseif (strpos($dir, "uruk_game_character_repair_log") !== false){    //캐릭터 수리 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    repair_log_id bigint not null auto_increment primary key,
@@ -243,7 +245,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_upgrade_log") !== false){
+        } elseif (strpos($dir, "uruk_game_character_upgrade_log") !== false){   //캐릭터 업그레이드 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    upgrade_log_id bigint not null auto_increment primary key,
@@ -270,7 +272,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_shop_buy_log") !== false){
+        } elseif (strpos($dir, "uruk_game_character_shop_buy_log") !== false){  //캐릭터 상점 구매내역 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    buy_log_id bigint not null auto_increment primary key,
@@ -297,7 +299,7 @@ foreach ($checkFile->getDirs() as $dir)
                    create_dt timestamp null DEFAULT CURRENT_TIMESTAMP,
                    UNIQUE KEY date_account_id (date, account_id)
                 )";
-        } elseif (strpos($dir, "uruk_game_character_shop_sell_log") !== false){
+        } elseif (strpos($dir, "uruk_game_character_shop_sell_log") !== false){ //캐릭터 상점 판매내역 로그 테이블
             $query = "create table ";
             $query .= $dir." (
                    sell_log_id bigint not null auto_increment primary key,

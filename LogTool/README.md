@@ -12,8 +12,5 @@
         *15 00 * * * /usr/bin/php -e /game/public_html/LogTool/Main/Cron/InsertLogDB.php
 
 ---
-### 현재 진행상황 (2022-03-25)
-* crontab 스케줄러 테스트 진행 완료
-* DB 생성, Insert 쿼리 빠뜨린 부분 추가
-* 로그 파일에 날짜 제거했지만, 테이블명에는 날짜 추가 진행하여 Create, Insert 로직 수정 
-* Insert한 log 처리 고민
+### 현재 진행상황 (2022-03-28)
+* 추석 삽입

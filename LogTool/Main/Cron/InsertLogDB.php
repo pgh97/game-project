@@ -30,6 +30,7 @@ foreach ($checkFile->getFiles() as $fileNm)
                 while(($line = fgets($file)) !== false) {
                     $json = json_decode($line);
                     $logDate = date("Ymd", strtotime($json->date));
+                    //전날기준 데이터 insert
                     if(strtotime($checkFile->getYesterday()) == strtotime($logDate)){
                         $query .= "('".$json->date."', '".$json->dateTime."', '".$json->channel_uid."', '".$json->game."', '".
                             $json->server_id."', ".$json->account_id.", ".$json->account_level.", ".$json->character_id.", ".
@@ -42,7 +43,7 @@ foreach ($checkFile->getFiles() as $fileNm)
                 }
                 fclose($file);
             }
-
+            //전날 로그파일이 없고, 전날 테이블 데이터가 없을시, 테이블 제거
             if($lineCount==0) {
                 $query = "SHOW TABLES LIKE 'uruk_game_character_money_log_".$checkFile->getYesterday()."'";
                 $statement = $conn->prepare($query);
@@ -472,7 +473,7 @@ foreach ($checkFile->getFiles() as $fileNm)
         }
         $query = rtrim($query, ', ');
     }
-
+    //전날기준 로그 데이터 insert 실행조건
     if(!empty($query)){
         $query .= " on duplicate key update create_dt = now()";
         $statement = $conn->prepare($query);
