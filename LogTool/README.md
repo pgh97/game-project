@@ -12,5 +12,4 @@
         *15 00 * * * /usr/bin/php -e /game/public_html/LogTool/Main/Cron/InsertLogDB.php
 
 ---
-### 현재 진행상황 (2022-03-28)
-* 추석 삽입
+
