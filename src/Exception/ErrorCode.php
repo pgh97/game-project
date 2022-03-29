@@ -38,6 +38,7 @@ class ErrorCode
     public const NO_PARAM = 'NO_PARAM';
     public const UPGRADE_FAIL = 'UPGRADE_FAIL';
     public const NO_UPGRADE_ITEM = 'NO_UPGRADE_ITEM';
+    public const NO_FISH_DEPTH = 'NO_FISH_DEPTH';
 
     private array $errorArray;
 
@@ -151,6 +152,10 @@ class ErrorCode
             'NO_UPGRADE_ITEM' => array(
                 'statusCode' => 5010,
                 'message' => '업그레이드에 필요한 부품이 부족합니다.'
+            ),
+            'NO_FISH_DEPTH' => array(
+                'statusCode' => 5011,
+                'message' => '사용중인 채비로 해당 수심에 도달 할 수 없습니다.'
             ),
             'FAIL_FUNCTION' => array(
                 'statusCode' => 8000,
